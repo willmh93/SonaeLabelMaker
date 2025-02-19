@@ -1,0 +1,22 @@
+
+/*QWidget
+{
+    background-color: #303039;
+    border: none;
+}*/
+/*
+QMenuBar, QStatusBar
+{
+    color: #000000;
+    background-color: #6f6f7a;
+}
+
+QSplitter:handle
+{
+    background-color: #5f5f6f;
+}
+*/
+
+PageOptions {
+    background-color: #ff0000;
+}

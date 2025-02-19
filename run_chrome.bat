@@ -1,0 +1,1 @@
+start chrome --disable-extensions --incognito --new-user --disable-background-networking --disable-sync-preferences --disable-sync --disable-component-extensions-with-background-pages --disable-renderer-backgrounding --no-default-browser-check

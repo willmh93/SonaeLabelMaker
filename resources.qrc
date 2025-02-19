@@ -1,0 +1,9 @@
+<RCC>
+    <qresource prefix="/">
+        <file>res/logo.png</file>
+        <file>res/styles.qss</file>
+        <file>shapes/Grease Gun.png</file>
+        <file>shapes/test_svg.svg</file>
+        <file>res/logo.svg</file>
+    </qresource>
+</RCC>
