@@ -201,7 +201,7 @@ QImage PagePreview::composeScene(const ComposerInfo& info)
     QPen line_pen(Qt::black);
     line_pen.setWidth(4);
 
-    QGraphicsRectItem* page_item = scene.addRect(page_rect, QPen(Qt::black), QBrush(Qt::white));
+    QGraphicsRectItem* page_item = scene.addRect(page_rect, QPen(Qt::NoPen), QBrush(Qt::white));
     QGraphicsRectItem* body_item = scene.addRect(page_body_rect, line_pen);
     QGraphicsLineItem* logo_edge = scene.addLine(QLineF(
         page_margin, logo_section_bottom,
