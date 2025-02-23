@@ -3,20 +3,20 @@
 #include <QApplication>
 #include <QFile>
 
-void copyQtLogo()
+
+/*void copyQtLogo()
 {
     QString targetPath = QCoreApplication::applicationDirPath() + "/qtlogo.svg";
     if (!QFile::exists(targetPath)) {
         QFile::copy(":/res/logo.svg", targetPath);
     }
-}
+}*/
 
 int main(int argc, char *argv[])
 {
     QApplication::setStyle("fusion");
 
     QApplication a(argc, argv);
-    copyQtLogo();
 
     MainWindow window;
 
@@ -51,7 +51,8 @@ int main(int argc, char *argv[])
     #endif
 
     qDebug() << "Maximized Window Size: " << window.size();
-    //window.setWindowIcon(QIcon(":/res/icon.ico"));
+    window.setWindowTitle("Label Maker");
+    window.setWindowIcon(QIcon(":/res/sonae_icon.png"));
     window.showMaximized();
     qDebug() << "Maximized Window Size: " << window.size();
 

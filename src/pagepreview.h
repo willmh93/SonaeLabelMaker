@@ -5,31 +5,78 @@
 #include <QGraphicsScene>
 #include <QGraphicsView>
 
+#include <QGraphicsPathItem>
+#include <QDomDocument>
+#include <QFile>
+
 #include <QWheelEvent>
 #include <QResizeEvent>
 #include <QShowEvent>
 
 #include <QGraphicsItem>
 #include <QSvgRenderer>
+#include <QXmlStreamReader>
+#include <QBuffer>
+//#include <QGraphicsSvgItem>
+
+//#include "pageoptions.h"
 
 namespace Ui {
 class PagePreview;
 }
 
+struct ShapeInfo
+{
+    QString svg_data;
+
+    static ShapeInfo fromPath(QString path)
+    {
+        ShapeInfo ret;
+
+        QFile file(path);
+        file.open(QIODevice::ReadOnly);
+
+        QTextStream stream(&file);
+        ret.svg_data = stream.readAll();
+        file.close();
+
+        return ret;
+    }
+};
+
 struct ComposerInfo
 {
     QColor tag_background_color;
+
+    ShapeInfo shape;
+    QColor shape_color;
 };
 
 class ShapeItem : public QGraphicsItem
 {
+    QPainterPath path;
+
     QSvgRenderer m_renderer;
     QPixmap m_pixmap;
+    QDomDocument doc;
+
+    QByteArray doc_bytearray;
+    QXmlStreamReader* xmlReader = nullptr;
+    //QGraphicsSvgItem* item;
 
     bool is_svg = false;
     
 public:
 
+    ShapeItem(QGraphicsItem* parent = nullptr)
+        : QGraphicsItem(parent)
+    {}
+
+    ~ShapeItem()
+    {
+        if (xmlReader)
+            delete xmlReader;
+    }
     QRectF boundingRect() const override
     {
         if (is_svg)
@@ -38,20 +85,92 @@ public:
             return QRectF(QPointF(0, 0), m_pixmap.size());
     }
 
-    void paint(QPainter* painter, const QStyleOptionGraphicsItem*, QWidget*) override 
+    void paint(QPainter* painter, const QStyleOptionGraphicsItem*, QWidget*) override
     {
         if (is_svg)
+        {
+            QPen pen(Qt::red, 10, Qt::DashLine);
+            painter->setPen(pen);
             m_renderer.render(painter, boundingRect());
+        }
         else
             painter->drawPixmap(boundingRect(), m_pixmap, boundingRect());
     }
 
-    ShapeItem(QGraphicsItem* parent = nullptr)
-        : QGraphicsItem(parent)
-    {}
-
-    ~ShapeItem()
+    void setStrokeWidth(double width)
     {
+        changeAttributes("stroke-width", QString::number(width));
+        m_renderer.load(doc.toByteArray());
+    }
+
+    void setStrokeStyle(QColor c)
+    {
+        changeAttributes("stroke", c.name().toUpper());
+        m_renderer.load(doc.toByteArray());
+    }
+
+    void setFillStyle(QColor c)
+    {
+        changeAttributes("fill", c.name().toUpper());
+        m_renderer.load(doc.toByteArray());
+    }
+
+    void changeAttributes(QString attName, QString attValue)
+    {
+        QDomElement rootElem = doc.documentElement();
+
+        QDomNode n = rootElem.firstChild();
+        while (!n.isNull())
+        {
+            if (n.isElement())
+            {
+                QDomElement e = n.toElement();
+                if (e.hasAttribute(attName))
+                    e.setAttribute(attName, attValue);
+
+                if (n.hasChildNodes())
+                    recursiveChangeAttributes(n.firstChild(), attName, attValue);
+            }
+            n = n.nextSibling();
+        }
+    }
+
+    void recursiveChangeAttributes(QDomNode node, QString attName, QString attValue)
+    {
+        QDomNode n = node;
+        while (!n.isNull())
+        {
+            if (n.isElement())
+            {
+                QDomElement e = n.toElement();
+                if (e.hasAttribute(attName))
+                    e.setAttribute(attName, attValue);
+
+                if (n.hasChildNodes())
+                    recursiveChangeAttributes(n.firstChild(), attName, attValue);
+            }
+            n = n.nextSibling();
+        }
+    }
+
+    void load_svg_from_memory(QString str)
+    {
+        is_svg = true;
+
+        doc.setContent(str);
+        doc_bytearray = doc.toByteArray();
+
+        QBuffer buf;
+        buf.open(QIODevice::ReadWrite);
+        QTextStream* bufStream = new QTextStream(&buf);
+        doc.save(*bufStream, 0);
+
+        xmlReader = new QXmlStreamReader(doc_bytearray);
+        QSvgRenderer* renderer = new QSvgRenderer();
+
+        buf.close();
+
+        m_renderer.load(xmlReader);
     }
 
     void load(QString filepath)
@@ -59,7 +178,34 @@ public:
         is_svg = filepath.contains(".svg");
 
         if (is_svg)
-            m_renderer.load(filepath);
+        {
+            QFile file(filepath);
+            file.open(QIODevice::ReadOnly);
+
+            QTextStream stream(&file);
+            QString str = stream.readAll();
+
+            doc.setContent(str);
+            file.close();
+
+
+            doc_bytearray = doc.toByteArray();
+
+            QBuffer buf;
+            buf.open(QIODevice::ReadWrite);
+            QTextStream* bufStream = new QTextStream(&buf);
+            doc.save(*bufStream, 0);
+
+            xmlReader = new QXmlStreamReader(doc_bytearray);
+            QSvgRenderer* renderer = new QSvgRenderer();
+
+            //item->setSharedRenderer(renderer);
+            //scene->addItem(item);
+            buf.close();
+
+            m_renderer.load(xmlReader);
+            //m_renderer.load(filepath);
+        }
         else
             m_pixmap.load(filepath);
     }
@@ -76,13 +222,7 @@ public:
 
 protected:
 
-
-    void wheelEvent(QWheelEvent* e) override
-    {
-        qreal sf = 1.0 + (qreal)e->angleDelta().y() / 1000.0;
-        scale(sf, sf);
-        e->accept();
-    }
+    void wheelEvent(QWheelEvent* e) override;
 };
 
 class PagePreview : public QWidget
@@ -92,6 +232,9 @@ class PagePreview : public QWidget
 public:
     explicit PagePreview(QWidget *parent = nullptr);
     ~PagePreview();
+
+    QImage composeTag(const ComposerInfo& info, QSize size);
+    QImage composeScene(const ComposerInfo& info);
 
 private:
     Ui::PagePreview *ui;
@@ -105,6 +248,11 @@ private:
     qreal zoom = 1;
 
 protected:
+
+    friend class PageGraphicsView;
+    //PageOptions* options;
+
+    bool fit_view_lock = true;
 
     const int info_row_count = 3;
 
@@ -123,10 +271,10 @@ protected:
     const qreal logo_padding = logo_height * 0.1;
 
     // tag
-    const qreal tag_padding = page_height * 0.025;
+    const qreal tag_padding = page_height * 0.02;
 
     // Shape
-    const qreal shape_padding = page_height * 0.04;
+    const qreal shape_padding = page_height * 0.08;
 
     // Info Boxes
     const qreal info_row_height = page_height * 0.15;
@@ -179,8 +327,7 @@ protected:
     QRect page_body_rect = page_rect.adjusted(page_margin, page_margin, -page_margin, -page_margin);
     
 
-    QImage composeTag(const ComposerInfo& info, QSize size);
-    QImage composeScene(const ComposerInfo &info);
+    
 
     void refitPageView();
     void resizeEvent(QResizeEvent* e) override;

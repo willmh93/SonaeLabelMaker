@@ -6,13 +6,18 @@
 #include <QEvent>
 #include <QResizeEvent>
 
-
+class PageOptions;
+class PagePreview;
 
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
 
 public:
+
+    PageOptions* pageOptions;
+    PagePreview* pagePreview;
+
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 

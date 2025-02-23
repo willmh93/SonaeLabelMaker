@@ -13,6 +13,7 @@
 #include <QPixmap>
 #include <QColor>
 
+#include "mainwindow.h"
 
 
 QImage changeColor(QImage image, const QColor &newColor) {
@@ -97,9 +98,13 @@ PagePreview::PagePreview(QWidget *parent)
 {
     ui->setupUi(this);
 
+
     //view->setSceneRect(page_rect);
     //view->fitInView(page_rect, Qt::KeepAspectRatio);
     //view->scale(0.25, 0.25);
+
+    //MainWindow* main_window = qobject_cast<MainWindow*>(topLevelWidget());
+    //options = main_window->pageOptions;
 
     auto* view = ui->pageView;
 
@@ -126,7 +131,7 @@ PagePreview::PagePreview(QWidget *parent)
     ComposerInfo info;
     info.tag_background_color = "#00ff00";
     QImage composed = composeScene(info);
-    composed.save("label.png");
+    //composed.save("label.png");
 
     view->setSceneRect(0, 0, 100, 100);
 
@@ -167,8 +172,15 @@ QImage PagePreview::composeTag(const ComposerInfo& info, QSize size)
         //shape_item->load("C:/Git/C++/Projects/SonaeLabelMaker/shapes/test_svg.svg");
         //shape_item->load("C:/Git/C++/Projects/SonaeLabelMaker/shapes/Grease Gun.png");
 
-        //shape_item->load(":/shapes/test_svg.svg");
-        shape_item->load(":/shapes/Grease Gun.png");
+        shape_item->load_svg_from_memory(info.shape.svg_data);
+
+        //shape_item->load(":/shapes/GREASE_GUN.svg");
+
+        /*shape_item->setStrokeWidth(20);
+        shape_item->setStrokeStyle(QColor(Qt::red));*/
+        shape_item->setStrokeStyle(QColor(Qt::black));
+        shape_item->setFillStyle(info.shape_color);
+        //shape_item->load(":/shapes/Grease Gun.png");
 
         shape_item->setScale(1);
 
@@ -191,6 +203,8 @@ QImage PagePreview::composeTag(const ComposerInfo& info, QSize size)
 
 QImage PagePreview::composeScene(const ComposerInfo& info)
 {
+    scene.clear();
+
     //QImage tag("C:/Git/C++/Projects/SonaeLabelMaker/tags/Grease Gun.png");
     //pixmap.fromImage(tag);
 
@@ -243,8 +257,6 @@ QImage PagePreview::composeScene(const ComposerInfo& info)
         logo_section_bottom + tag_section_height / 2 - itemHeight(tag_item) / 2
     );
 
-    
-
     // Render
     QImage image(page_rect.size(), QImage::Format_ARGB32);
     image.fill(Qt::white);
@@ -275,14 +287,13 @@ void PagePreview::refitPageView()
 
 void PagePreview::resizeEvent(QResizeEvent* e)
 {
-    if (!shown_event_once)
-        return;
-    //if (initialed_layout)
+    //if (!shown_event_once)
     //    return;
 
     initialed_layout = true;
 
-    refitPageView();
+    if (fit_view_lock)
+        refitPageView();
 }
 
 
@@ -303,12 +314,14 @@ void PagePreview::showEvent(QShowEvent* e)
     //view->setSceneRect(view_area_rect);
     //view->fitInView(scene.itemsBoundingRect(), Qt::KeepAspectRatio);
 
-    
+    if (fit_view_lock)
+        refitPageView();
 }
 
 void PagePreview::wheelEvent(QWheelEvent* e)
 {
     auto* view = ui->pageView;
+    
 
     //zoom += (qreal)e->angleDelta().y() / 1000.0;
     
@@ -319,4 +332,14 @@ void PagePreview::wheelEvent(QWheelEvent* e)
     //ui->pageView->viewport()->update();
     //ui->pageView->update();
     //scene.update();
+}
+
+void PageGraphicsView::wheelEvent(QWheelEvent* e)
+{
+    qreal sf = 1.0 + (qreal)e->angleDelta().y() / 1000.0;
+    scale(sf, sf);
+    e->accept();
+
+    PagePreview* page_preview = qobject_cast<PagePreview*>(parent());
+    page_preview->fit_view_lock = false;
 }

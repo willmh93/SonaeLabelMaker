@@ -16,7 +16,7 @@ MainWindow::MainWindow(QWidget *parent)
         QMenuBar* menuBar = new QMenuBar(this);
         setMenuBar(menuBar);
 
-        //menuBar->setStyleSheet("QMenuBar { color: rgb(255,255,255); background-color: #666670; }");
+        menuBar->setStyleSheet("QMenuBar { color: rgb(255,255,255); background-color: #1e1e1e; }");
 
         // Create File menu
         QMenu* fileMenu = menuBar->addMenu("File");
@@ -48,7 +48,7 @@ MainWindow::MainWindow(QWidget *parent)
     // Status bar
     {
         QStatusBar* statusBar = new QStatusBar(this);
-        //statusBar->setStyleSheet("QStatusBar { color: rgb(255,255,255); background-color: #666670; }");
+        statusBar->setStyleSheet("QStatusBar { color: rgb(255,255,255); background-color: #1e1e1e; }");
 
         statusBar->showMessage("No project active");
         setStatusBar(statusBar);
@@ -56,10 +56,11 @@ MainWindow::MainWindow(QWidget *parent)
 
     //QVBoxLayout *layout = new QVBoxLayout(this);
     QSplitter* mainSplitter = new QSplitter(Qt::Horizontal, this);
-    //mainSplitter->setStyleSheet("QSplitter:handle { color: rgb(0,0,0); background: #000000; }");
+    //mainSplitter->setStyleSheet("QSplitter:handle { color: rgb(0,0,0); background: #1e1e1e; }");
 
-    PageOptions *pageOptions = new PageOptions(this);
-    PagePreview *pagePreview = new PagePreview(this);
+    pageOptions = new PageOptions(this);
+    pagePreview = new PagePreview(this);
+    pageOptions->setPagePreview(pagePreview);
 
     pageOptions->setAutoFillBackground(true);
     qDebug() << "PageOptions objectName:" << pageOptions->objectName();
