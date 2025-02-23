@@ -1,4 +1,5 @@
 build
-/build/Desktop_Qt_6_8_2_MSVC2022_64bit-Debug/qtc_Visual_Studio_17_2022/SonaeLabelMaker.sln
-/CMakeLists.txt.user
-csv/*
+csv
+deployed
+SonaeLabelMaker.sln.lnk
+CMakeLists.txt.user
