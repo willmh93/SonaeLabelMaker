@@ -4,6 +4,7 @@
 #include <QWidget>
 #include <QGraphicsScene>
 #include <QGraphicsView>
+#include <QRegularExpression>
 
 #include <QGraphicsPathItem>
 #include <QDomDocument>
@@ -19,38 +20,18 @@
 #include <QBuffer>
 //#include <QGraphicsSvgItem>
 
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonArray>
+#include <QJsonValue>
+
 //#include "pageoptions.h"
 
 namespace Ui {
 class PagePreview;
 }
 
-struct ShapeInfo
-{
-    QString svg_data;
 
-    static ShapeInfo fromPath(QString path)
-    {
-        ShapeInfo ret;
-
-        QFile file(path);
-        file.open(QIODevice::ReadOnly);
-
-        QTextStream stream(&file);
-        ret.svg_data = stream.readAll();
-        file.close();
-
-        return ret;
-    }
-};
-
-struct ComposerInfo
-{
-    QColor tag_background_color;
-
-    ShapeInfo shape;
-    QColor shape_color;
-};
 
 class ShapeItem : public QGraphicsItem
 {
@@ -62,7 +43,6 @@ class ShapeItem : public QGraphicsItem
 
     QByteArray doc_bytearray;
     QXmlStreamReader* xmlReader = nullptr;
-    //QGraphicsSvgItem* item;
 
     bool is_svg = false;
     
@@ -89,12 +69,15 @@ public:
     {
         if (is_svg)
         {
-            QPen pen(Qt::red, 10, Qt::DashLine);
-            painter->setPen(pen);
             m_renderer.render(painter, boundingRect());
         }
         else
             painter->drawPixmap(boundingRect(), m_pixmap, boundingRect());
+    }
+
+    QByteArray data()
+    {
+        return doc.toByteArray();
     }
 
     void setStrokeWidth(double width)
@@ -153,6 +136,116 @@ public:
         }
     }
 
+    void normalizeShape()
+    {
+        if (!is_svg)
+            return;
+
+        QDomElement root = doc.documentElement();
+        // Get all <polygon> elements in the SVG.
+        QDomNodeList polygonNodes = root.elementsByTagName("polygon");
+        if (polygonNodes.isEmpty())
+            return;
+
+        // First pass: determine the union bounding box over all polygon points.
+        bool firstPoint = true;
+        double unionMinX, unionMinY, unionMaxX, unionMaxY;
+
+        // We'll also store the polygon elements for later update.
+        QVector<QDomElement> polygons;
+        for (int i = 0; i < polygonNodes.size(); i++) {
+            QDomElement polyElem = polygonNodes.at(i).toElement();
+            if (polyElem.isNull())
+                continue;
+            polygons.append(polyElem);
+
+            QString pointsStr = polyElem.attribute("points");
+            // Split on spaces and commas using QRegularExpression.
+            QStringList tokens = pointsStr.split(QRegularExpression("[\\s,]+"), Qt::SkipEmptyParts);
+            for (int j = 0; j < tokens.size(); j += 2) {
+                if (j + 1 >= tokens.size())
+                    break;
+                bool ok1, ok2;
+                double x = tokens[j].toDouble(&ok1);
+                double y = tokens[j + 1].toDouble(&ok2);
+                if (!ok1 || !ok2)
+                    continue;
+                if (firstPoint) {
+                    unionMinX = unionMaxX = x;
+                    unionMinY = unionMaxY = y;
+                    firstPoint = false;
+                }
+                else {
+                    unionMinX = qMin(unionMinX, x);
+                    unionMaxX = qMax(unionMaxX, x);
+                    unionMinY = qMin(unionMinY, y);
+                    unionMaxY = qMax(unionMaxY, y);
+                }
+            }
+        }
+        if (firstPoint) // no valid points found
+            return;
+
+        double unionWidth = unionMaxX - unionMinX;
+        double unionHeight = unionMaxY - unionMinY;
+        if (unionWidth == 0 || unionHeight == 0)
+            return;
+
+        // Determine the target dimensions. We try to use the viewBox of the root element.
+        double targetWidth = unionWidth;
+        double targetHeight = unionHeight;
+        QString viewBoxStr = root.attribute("viewBox");
+        if (!viewBoxStr.isEmpty()) {
+            QStringList vbTokens = viewBoxStr.split(QRegularExpression("[\\s,]+"), Qt::SkipEmptyParts);
+            if (vbTokens.size() == 4) {
+                bool ok1, ok2, ok3, ok4;
+                double vbX = vbTokens[0].toDouble(&ok1);
+                double vbY = vbTokens[1].toDouble(&ok2);
+                double vbW = vbTokens[2].toDouble(&ok3);
+                double vbH = vbTokens[3].toDouble(&ok4);
+                if (ok1 && ok2 && ok3 && ok4) {
+                    targetWidth = vbW;
+                    targetHeight = vbH;
+                }
+            }
+        }
+
+        // Compute scale factors to map the union bounding box to the target dimensions.
+        double scaleX = targetWidth / unionWidth;
+        double scaleY = targetHeight / unionHeight;
+
+        // Second pass: update every polygon's points using the computed transform.
+        for (int i = 0; i < polygons.size(); i++) {
+            QDomElement polyElem = polygons[i];
+            QString pointsStr = polyElem.attribute("points");
+            QStringList tokens = pointsStr.split(QRegularExpression("[\\s,]+"), Qt::SkipEmptyParts);
+            QStringList newPointsList;
+            for (int j = 0; j < tokens.size(); j += 2) {
+                if (j + 1 >= tokens.size())
+                    break;
+                bool ok1, ok2;
+                double x = tokens[j].toDouble(&ok1);
+                double y = tokens[j + 1].toDouble(&ok2);
+                if (!ok1 || !ok2)
+                    continue;
+                // Normalize: subtract the union min and scale.
+                double newX = (x - unionMinX) * scaleX;
+                double newY = (y - unionMinY) * scaleY;
+                // Append in "x,y" format.
+                newPointsList.append(QString("%1,%2").arg(newX).arg(newY));
+            }
+            // Set the updated points attribute.
+            polyElem.setAttribute("points", newPointsList.join(" "));
+        }
+
+        // Optionally, update the root viewBox so that it starts at 0,0.
+        root.setAttribute("viewBox", QString("0 0 %1 %2").arg(targetWidth).arg(targetHeight));
+
+        // Finally, reload the renderer with the updated SVG document.
+        m_renderer.load(doc.toByteArray());
+    }
+
+
     void load_svg_from_memory(QString str)
     {
         is_svg = true;
@@ -166,8 +259,6 @@ public:
         doc.save(*bufStream, 0);
 
         xmlReader = new QXmlStreamReader(doc_bytearray);
-        QSvgRenderer* renderer = new QSvgRenderer();
-
         buf.close();
 
         m_renderer.load(xmlReader);
@@ -198,17 +289,73 @@ public:
 
             xmlReader = new QXmlStreamReader(doc_bytearray);
             QSvgRenderer* renderer = new QSvgRenderer();
-
-            //item->setSharedRenderer(renderer);
-            //scene->addItem(item);
             buf.close();
 
             m_renderer.load(xmlReader);
-            //m_renderer.load(filepath);
         }
         else
             m_pixmap.load(filepath);
     }
+};
+
+struct ShapeInfo
+{
+    QString svg_data;
+    QByteArray svg_icon;
+
+    static ShapeInfo fromPath(QString path)
+    {
+        ShapeInfo ret;
+
+        QFile file(path);
+        file.open(QIODevice::ReadOnly);
+
+        QTextStream stream(&file);
+        ret.svg_data = stream.readAll();
+        file.close();
+
+        ret.makeIcon();
+        return ret;
+    }
+
+    static ShapeInfo fromData(const QByteArray& data)
+    {
+        ShapeInfo ret;
+        ret.svg_data = data;
+        ret.makeIcon();
+        return ret;
+    }
+
+    void makeIcon()
+    {
+        ShapeItem shape;
+        shape.load_svg_from_memory(svg_data);
+        shape.normalizeShape();
+
+        shape.setStrokeWidth(2);
+        shape.setStrokeStyle(Qt::black);
+        shape.setFillStyle(Qt::black);
+
+        svg_icon = shape.data();
+    }
+
+    void serialize(QJsonObject& info) const
+    {
+        info["svg"] = svg_data;
+    }
+
+    void deserialize(const QJsonObject& info)
+    {
+        svg_data = info["svg"].toString();
+    }
+};
+
+struct ComposerInfo
+{
+    QColor tag_background_color;
+
+    ShapeInfo shape;
+    QColor shape_color;
 };
 
 class PageGraphicsView : public QGraphicsView

@@ -46,19 +46,17 @@ MainWindow::MainWindow(QWidget *parent)
     }
 
     // Status bar
-    {
-        QStatusBar* statusBar = new QStatusBar(this);
-        statusBar->setStyleSheet("QStatusBar { color: rgb(255,255,255); background-color: #1e1e1e; }");
+    QStatusBar* statusBar = new QStatusBar(this);
+    statusBar->setStyleSheet("QStatusBar { color: rgb(255,255,255); background-color: #1e1e1e; }");
 
-        statusBar->showMessage("No project active");
-        setStatusBar(statusBar);
-    }
+    statusBar->showMessage("No project active");
+    setStatusBar(statusBar);
 
     //QVBoxLayout *layout = new QVBoxLayout(this);
     QSplitter* mainSplitter = new QSplitter(Qt::Horizontal, this);
     //mainSplitter->setStyleSheet("QSplitter:handle { color: rgb(0,0,0); background: #1e1e1e; }");
 
-    pageOptions = new PageOptions(this);
+    pageOptions = new PageOptions(statusBar, this);
     pagePreview = new PagePreview(this);
     pageOptions->setPagePreview(pagePreview);
 

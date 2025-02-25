@@ -36,5 +36,8 @@
         <file>shapes/three ungrouped svg.svg</file>
         <file>shapes/PARALLELOGRAM.svg</file>
         <file>shapes/TRIANGLE.svg</file>
+        <file>res/icon_find.svg</file>
+        <file>res/icon_save.svg</file>
+        <file>res/icon_unbox.svg</file>
     </qresource>
 </RCC>

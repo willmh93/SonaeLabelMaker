@@ -59,8 +59,8 @@
 	border: none;
 }
 
-QToolButton {
-	background-color: #5f5f5f;
+QPushButton {
+	background-color: #4f4f4f;
 }</string>
        </property>
        <property name="frameShape">
@@ -86,7 +86,7 @@ QToolButton {
          <number>4</number>
         </property>
         <item>
-         <widget class="QToolButton" name="toolButton">
+         <widget class="QPushButton" name="pushButton">
           <property name="minimumSize">
            <size>
             <width>36</width>
@@ -94,7 +94,7 @@ QToolButton {
            </size>
           </property>
           <property name="text">
-           <string/>
+           <string>  Print</string>
           </property>
           <property name="icon">
            <iconset resource="../resources.qrc">
@@ -142,7 +142,7 @@ QToolButton {
         <enum>Qt::LayoutDirection::LeftToRight</enum>
        </property>
        <property name="styleSheet">
-        <string notr="true">border: none; background: #2d2dffd;</string>
+        <string notr="true">border: none; background: #2d2d2d;</string>
        </property>
        <property name="lineWidth">
         <number>0</number>

@@ -223,6 +223,8 @@ class CSVReader
 {
     int col, row;
     int ch_index;
+    bool data_loaded = false;
+    bool file_opened = false;
 
     istringstream stream;
     vector<CSVRow> table;
@@ -252,6 +254,16 @@ public:
 
     CSVHeaderPtr setHeader(CSVCellPtr cell);
     void readData();
+
+    bool opened()
+    {
+        return file_opened;
+    }
+
+    bool loaded()
+    {
+        return data_loaded;
+    }
 
     CSVRow& getRow(int row)
     {

@@ -6,6 +6,9 @@
 #include <QStandardItemModel>
 #include <QStandardItem>
 #include <QSortFilterProxyModel>
+#include <QStyledItemDelegate>
+#include <QPainter>
+
 #include <any>
 
 namespace Ui {
@@ -31,13 +34,20 @@ public:
     {
         return std::any_cast<T>(data);
     }
+
+    void setData(const std::any& _data)
+    {
+        data = _data;
+    }
 };
 
 Q_DECLARE_METATYPE(SearchableListItem)
 
 class CustomListModel : public QAbstractListModel
 {
-    Q_OBJECT
+    Q_OBJECT;
+
+    
 
 public:
     explicit CustomListModel(QObject* parent = nullptr)
@@ -74,6 +84,16 @@ public:
                 return i;
         }
         return -1;
+    }
+
+    SearchableListItem *findItem(QString txt)
+    {
+        for (qsizetype i = 0; i < m_items.size(); i++)
+        {
+            if (m_items[i].txt == txt)
+                return &m_items[i];
+        }
+        return nullptr;
     }
 
     /*int indexOf(SearchableListItem* item)
@@ -164,15 +184,69 @@ private:
     QString m_filterString;
 };
 
+class SearchableList;
+
+class XItemDelegate : public QStyledItemDelegate 
+{
+    Q_OBJECT;
+
+    int row_size = 16;
+
+public:
+    XItemDelegate(QObject* parent = nullptr) : QStyledItemDelegate(parent) {}
+
+    void setRowHeight(int height)
+    {
+        row_size = height;
+    }
+
+    QSize sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const override;
+    void paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const override;
+
+    bool editorEvent(
+        QEvent* event, 
+        QAbstractItemModel* model,
+        const QStyleOptionViewItem& option,
+        const QModelIndex& index) override;
+
+signals:
+    void iconClicked(const QModelIndex& index);
+
+private:
+    QRect getIconRect(
+        const QStyleOptionViewItem& option,
+        const QModelIndex& index, 
+        const QRect& itemRect) const
+    {
+        int yOffset = option.rect.height() / 4; // Center it vertically
+        int size = option.rect.height() / 2;  // Scale with row height
+
+        // Get the text and calculate its bounding box
+        QString text = index.data(Qt::DisplayRole).toString();
+        QFontMetrics fm(option.font);
+        int textWidth = fm.horizontalAdvance(text);  // Get text width
+
+        int xOffset = textWidth + 10;
+        QRect xRect(xOffset, option.rect.y() + yOffset, size, size);
+        return xRect;
+
+    }
+};
 
 class SearchableList : public QWidget
 {
     Q_OBJECT
 
     std::string field_id;
+
     //std::vector<SearchableListItem> all_items;
 
 public:
+
+    std::function<void(SearchableListItem&, QPainter* painter, QRect&r)> icon_painter = nullptr;
+    std::function<void(SearchableListItem&)> icon_click_callback = nullptr;
+    std::function<void(SearchableListItem&)> item_doubleclick_callback = nullptr;
+    
 
 signals:
 
@@ -190,6 +264,21 @@ public:
 
     void setName(const QString& name);
     const std::string &fieldId() { return field_id; }
+
+    void setIconPainter(std::function<void(SearchableListItem&, QPainter* painter, QRect& r)> _icon_painter)
+    {
+        icon_painter = _icon_painter;
+    }
+
+    void onClickIcon(std::function<void(SearchableListItem&)> _icon_click_callback)
+    {
+        icon_click_callback = _icon_click_callback;
+    }
+
+    void onDoubleClickItem(std::function<void(SearchableListItem&)> _item_doubleclick_callback)
+    {
+        item_doubleclick_callback = _item_doubleclick_callback;
+    }
 
     void clear()
     {
@@ -220,14 +309,37 @@ public:
             model.appendRow(SearchableListItem(txt, data));
     }
 
+    template<typename T>
+    bool attachItemData(QString txt, const T& data)
+    {
+        SearchableListItem *item = model.findItem(txt);
+        if (item)
+        {
+            item->setData(data);
+            return true;
+        }
+        return false;
+    }
+
+    SearchableListItem* findItem(QString txt)
+    {
+        return model.findItem(txt);
+    }
+
+    void refresh();
+
     /*SearchableListItem *findItem(QString txt)
     {
         return model.find(txt);
     }*/
 
+    void setSelectable(bool b);
     void setCurrentItem(int i);
     void setCurrentItem(const QString &txt);
     void setCurrentItem(SearchableListItem *item);
+
+    void setRowHeight(int height);
+
 
 private:
 
@@ -235,6 +347,8 @@ private:
 
     CustomListModel  model;
     CustomFilterProxyModel proxyModel;
+
+    XItemDelegate* item_delegate;
 
 };
 

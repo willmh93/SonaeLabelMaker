@@ -8,6 +8,8 @@ void CSVReader::open(const char* txt)
     col = row = 0;
     ch_index = 0;
     max_header_row = 0;
+    data_loaded = false;
+    file_opened = true;
 
     read_raw_table();
 }
@@ -177,6 +179,8 @@ void CSVReader::readData()
             cell->header = header;
         }
     }
+
+    data_loaded = true;
 
     //size_t row_count = table.size();
     //for (size_t row = 0; row < row_count; row++)

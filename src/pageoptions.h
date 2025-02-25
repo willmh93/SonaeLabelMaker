@@ -2,6 +2,7 @@
 #define PAGEOPTIONS_H
 
 #include <QWidget>
+#include <QStatusBar>
 
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -10,12 +11,14 @@
 
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
+#include <QQmlComponent>
+#include <QColorDialog>
 
 #include "searchablelist.h"
 #include "pagepreview.h"
 #include "csv_reader.h"
 
-class FileUploader;
+class FileManager;
 
 namespace Ui {
 class PageOptions;
@@ -32,38 +35,125 @@ class ComposerInfoGenerator
 
 public:
 
-    void addShapeMapping(QString desc, ShapeInfo shape_info)
+    void makeShapeIcon(QString desc)
     {
-        shape_map[desc] = shape_info;
+        shape_map[desc].makeIcon();
     }
 
-    void addShapeColorMapping(QString desc, QColor color)
+    const std::unordered_map<QString, ShapeInfo> shapeMap() const
+    {
+        return shape_map;
+    }
+
+    const std::unordered_map<QString, QColor> shapeColorMap() const
+    {
+        return shape_color_map;
+    }
+
+    const std::unordered_map<QString, QColor> backColorMap() const
+    {
+        return back_color_map;
+    }
+
+    void setShapeInfo(QString desc, ShapeInfo shape_info)
+    {
+        shape_map[desc] = shape_info;
+        makeShapeIcon(desc);
+    }
+
+    void setShapeColor(QString desc, QColor color)
     {
         shape_color_map[desc] = color;
     }
 
-    void addBackColor(QString desc, QColor color)
+    void setBackColor(QString desc, QColor color)
     {
         back_color_map[desc] = color;
     }
 
-    ShapeInfo toShapeInfo(QString desc)
+    bool containsShapeInfo(QString desc)
     {
-        return shape_map[desc];
+        return shape_map.count(desc) > 0;
     }
 
-    QColor toShapeColor(QString desc)
+    bool containsShapeColor(QString desc)
     {
-        return shape_color_map[desc];
+        return shape_color_map.count(desc) > 0;
     }
 
-    QColor toBackColor(QString desc)
+    bool containsBackColor(QString desc)
     {
-        return back_color_map[desc];
+        return back_color_map.count(desc) > 0;
     }
 
-    void serialize(QJsonObject &info) {}
-    void deserialize() {}
+    ShapeInfo getShapeInfo(QString desc)
+    {
+        if (shape_map.count(desc))
+            return shape_map[desc];
+        else
+            return ShapeInfo();
+    }
+
+    QColor getShapeColor(QString desc)
+    {
+        if (shape_color_map.count(desc))
+            return shape_color_map[desc];
+        else
+            return QColor(0, 0, 0, 0);
+    }
+
+    QColor getBackColor(QString desc)
+    {
+        if (back_color_map.count(desc))
+            return back_color_map[desc];
+        else
+            return QColor(0, 0, 0, 0);
+    }
+
+    void serialize(QJsonObject &info) const
+    {
+        QJsonObject map_shape_obj, map_shape_color_obj, map_back_color_obj;
+
+        for (const auto& [key, value] : shape_map)
+        {
+            QJsonObject shape_info_obj;
+            value.serialize(shape_info_obj);
+            map_shape_obj[key] = shape_info_obj;
+        }
+
+        for (const auto& [key, value] : shape_color_map)
+            map_shape_color_obj[key] = value.name(QColor::HexArgb);
+
+        for (const auto& [key, value] : back_color_map)
+            map_back_color_obj[key] = value.name(QColor::HexArgb);
+
+
+        info["back_color"] = map_back_color_obj;
+        info["shape_color"] = map_shape_color_obj;
+        info["shape"] = map_shape_obj;
+    }
+
+    void deserialize(const QJsonObject& info)
+    {
+        QJsonObject map_shape_obj = info["shape"].toObject();
+        QJsonObject map_shape_color_obj = info["shape_color"].toObject();
+        QJsonObject map_back_color_obj = info["back_color"].toObject();
+
+        qDebug() << map_shape_obj;
+
+        for (auto it = map_shape_obj.begin(); it != map_shape_obj.end(); ++it)
+        {
+            ShapeInfo shape_info;
+            shape_info.deserialize(it->toObject());
+            setShapeInfo(it.key(), shape_info);
+        }
+        
+        for (auto it = map_shape_color_obj.begin(); it != map_shape_color_obj.end(); ++it)
+            setShapeColor(it.key(), QColor(it->toString()));
+
+        for (auto it = map_back_color_obj.begin(); it != map_back_color_obj.end(); ++it)
+            setBackColor(it.key(), QColor(it->toString()));
+    }
 };
 
 struct OilTypeEntry
@@ -83,7 +173,7 @@ class PageOptions : public QWidget
     Q_OBJECT;
 
     //CSVTable data;
-    std::vector<SearchableList*> field_widgets;
+    //std::vector<SearchableList*> field_widgets;
 
     SearchableList* field_merged_code;
     SearchableList* field_shape;
@@ -93,12 +183,15 @@ class PageOptions : public QWidget
     SearchableList* field_products;
 
     PagePreview* pagePreview;
+    QStatusBar* statusBar;
+
+    OilTypeEntryPtr selected_entry = nullptr;
 
     ComposerInfoGenerator composerGenerator;
     ComposerInfo composeInfo;
 
 public:
-    explicit PageOptions(QWidget *parent = nullptr);
+    explicit PageOptions(QStatusBar* statusBar, QWidget *parent = nullptr);
     ~PageOptions();
 
     void setPagePreview(PagePreview* _pagePreview)
@@ -107,8 +200,9 @@ public:
     }
 
     CSVReader csv;
-    FileUploader *csv_picker;
-
+    FileManager* csv_picker;
+    FileManager* svg_picker;
+    FileManager* project_file_manager;
 
     QString nullableFieldPropTxt(std::string txt)
     {
@@ -117,35 +211,31 @@ public:
         return txt.c_str();
     };
 
-    SearchableList* addOilTypeField(QString field_id, QString field_name);
-    SearchableList* addProductField(QString field_id, QString field_name);
+    SearchableList* addSearchableListRow1(QString field_id, QString field_name);
+    SearchableList* addSearchableListRow2(QString field_id, QString field_name);
     //void populateOilTypeFields();
 
     void openCSV(const char *text);
-    void buildDatabase();
+    void refreshData();
+    void rebuildDatabase();
 
-    void serialize();
-    void deserialize(const QString& json);
+    QByteArray serialize();
+    void deserialize(const QByteArray& json);
 
-    QObject* dialogObject = nullptr;
+    QColorDialog *color_picker;
+    //QObject* dialogObject = nullptr;
 
 public slots:
-    void openColorPicker() {
-        if (dialogObject) {
-            QMetaObject::invokeMethod(dialogObject, "openDialog");
-        }
-        else {
-            qDebug() << "Failed to find QML dialog object.";
-        }
-    }
 
+    /*void openDialog(const QString& qmlFile);
     void onColorSelected(const QColor &color) {
         qDebug() << "Color chosen:" << color;
         // Apply the color to UI elements (e.g., change a label background)
-    }
+    }*/
 
 private:
-    QQmlApplicationEngine engine;
+    //QQmlApplicationEngine *engine;
+    void recomposePage();
 
 private:
     Ui::PageOptions *ui;

@@ -18,6 +18,11 @@ int main(int argc, char *argv[])
 
     QApplication a(argc, argv);
 
+    QFont defaultFont = a.font();
+    defaultFont.setPointSize(9); // Set a fixed font size
+    a.setFont(defaultFont);
+
+
     MainWindow window;
 
     

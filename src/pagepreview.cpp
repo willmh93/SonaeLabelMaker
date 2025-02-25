@@ -129,7 +129,8 @@ PagePreview::PagePreview(QWidget *parent)
     view->setScene(&scene);
 
     ComposerInfo info;
-    info.tag_background_color = "#00ff00";
+    info.shape_color = "#ffffff";
+    info.tag_background_color = "#ffffff";
     QImage composed = composeScene(info);
     //composed.save("label.png");
 
@@ -173,6 +174,7 @@ QImage PagePreview::composeTag(const ComposerInfo& info, QSize size)
         //shape_item->load("C:/Git/C++/Projects/SonaeLabelMaker/shapes/Grease Gun.png");
 
         shape_item->load_svg_from_memory(info.shape.svg_data);
+        shape_item->normalizeShape();
 
         //shape_item->load(":/shapes/GREASE_GUN.svg");
 
