@@ -1,9 +1,10 @@
 #include "searchablelist.h"
 #include "ui_searchablelist.h"
 
-#include <QLineEdit>
+
 #include <QEvent>
 #include <QMouseEvent>
+
 
 SearchableList::SearchableList(
     const std::string _field_id,
@@ -15,6 +16,9 @@ SearchableList::SearchableList(
     ui->setupUi(this);
     field_id = _field_id;
     setName(name);
+    
+    if (other_lists == nullptr)
+        ui->combo->hide();
 
     item_delegate = new XItemDelegate(ui->list);
 
@@ -26,27 +30,29 @@ SearchableList::SearchableList(
     {
         proxyModel.setFilterString(filter);
     });
-    
-    connect(ui->list->selectionModel(), &QItemSelectionModel::currentChanged, this,
-        [this](const QModelIndex& current, const QModelIndex& previous)
+
+    connect(ui->filter, &FocusableLineEdit::focusGained, this, [this]()
     {
-        if (current.isValid())
+        ui->combo->setChecked(true);
+    });
+
+    updateSelectionModel();
+
+    connect(ui->combo, &QRadioButton::toggled, this, [this](bool b)
+    {
+        if (other_lists)
         {
-            QVariant data = current.data(Qt::UserRole); // Get custom data
-            SearchableListItem item = data.value<SearchableListItem>();
-            emit onChangedSelected(item);
-            //qDebug() << "Selected item value:" << item.data;
+            for (SearchableList* list : *other_lists)
+            {
+                if (list != this)
+                    list->_setRadioChecked(false, true);
+            }
+
+            
+            _setRadioChecked(true);
         }
-
-        //if (!selected.indexes().isEmpty()) 
-        {
-            //QVariant data = current.data(Qt::UserRole); // Get custom data
-
-            //QModelIndex index = selected.indexes().first();
-
-            //ui->list->item index.row
-            //emit onChangedSelected(index.data().toString());
-        }
+        if (on_radio_toggle)
+            on_radio_toggle(b);
     });
 
     connect(ui->list, &QListView::doubleClicked, this, [this](const QModelIndex& index)
@@ -66,9 +72,65 @@ SearchableList::~SearchableList()
     delete ui;
 }
 
-void SearchableList::setName(const QString &name)
+void SearchableList::setName(const QString &_name)
 {
-    ui->nameLabel->setText(name);
+    name = _name;
+
+    refreshLayoutUI();
+}
+
+void SearchableList::refreshLayoutUI()
+{
+    if (other_lists != nullptr)
+    {
+        // Radio
+        ui->combo->setText(name);
+        ui->combo->show();
+        ui->nameLabel->hide();
+    }
+    else
+    {
+        // Label
+        ui->nameLabel->setText(name);
+        ui->nameLabel->show();
+        ui->combo->hide();
+    }
+
+    if (filterable)
+        ui->filter->show();
+    else
+        ui->filter->hide();
+}
+
+void SearchableList::setFilterable(bool b)
+{
+    filterable = b;
+    refreshLayoutUI();
+}
+
+void SearchableList::_setRadioChecked(bool b, bool blockSignals)
+{
+    QSignalBlocker blocker(ui->combo);
+    ui->combo->setChecked(b);
+}
+void SearchableList::setRadioGroup(std::shared_ptr<std::vector<SearchableList*>> _other_lists)
+{
+    other_lists = _other_lists;
+    refreshLayoutUI();
+}
+
+void SearchableList::setRadioChecked(bool b)
+{
+    for (SearchableList* list : *other_lists)
+    {
+        if (list != this)
+            list->_setRadioChecked(list == this);
+    }
+}
+
+bool SearchableList::getRadioChecked()
+{
+    return ui->combo->isChecked();
 }
 
 void SearchableList::refresh()
@@ -85,9 +147,46 @@ void SearchableList::refresh()
     }
 }
 
+void SearchableList::updateSelectionModel()
+{
+    if (ui->list->selectionMode() != QAbstractItemView::SelectionMode::NoSelection)
+    {
+        connect(ui->list->selectionModel(), &QItemSelectionModel::currentChanged, this,
+            [this](const QModelIndex& current, const QModelIndex& previous)
+        {
+            if (current.isValid())
+            {
+                QVariant data = current.data(Qt::UserRole); // Get custom data
+                SearchableListItem item = data.value<SearchableListItem>();
+                emit onChangedSelected(item);
+            }
+        });
+    }
+    else
+    {
+        disconnect(
+            ui->list->selectionModel(), 
+            &QItemSelectionModel::currentChanged,
+            this, 0);
+    }
+}
+
+void SearchableList::clearFilter()
+{
+    ui->filter->clear();
+}
+
 void SearchableList::setSelectable(bool b)
 {
-    ui->list->setSelectionMode(QAbstractItemView::SelectionMode::NoSelection);
+    if (b)
+    {
+        ui->list->setSelectionMode(QAbstractItemView::SelectionMode::SingleSelection);
+    }
+    else
+    {
+        ui->list->setSelectionMode(QAbstractItemView::SelectionMode::NoSelection);
+    }
+    updateSelectionModel();
 }
 
 void SearchableList::setCurrentItem(int i)
@@ -104,8 +203,11 @@ void SearchableList::setCurrentItem(const QString& txt)
     int i = proxyModel.find(txt);
     QModelIndex modelIndex = proxyModel.index(i, 0);
     ui->list->setCurrentIndex(modelIndex);
-    ui->list->selectionModel()->clearSelection();
-    ui->list->selectionModel()->select(modelIndex, QItemSelectionModel::Select);
+    //if (ui->list->selectionMode() != QAbstractItemView::SelectionMode::NoSelection)
+    {
+        ui->list->selectionModel()->clearSelection();
+        ui->list->selectionModel()->select(modelIndex, QItemSelectionModel::Select);
+    }
 }
 
 void SearchableList::setCurrentItem(SearchableListItem* item)
@@ -113,8 +215,19 @@ void SearchableList::setCurrentItem(SearchableListItem* item)
     int i = model.find(item);
     QModelIndex modelIndex = proxyModel.index(i, 0);
     ui->list->setCurrentIndex(modelIndex);
-    ui->list->selectionModel()->clearSelection();
-    ui->list->selectionModel()->select(modelIndex, QItemSelectionModel::Select);
+    //if (ui->list->selectionMode() != QAbstractItemView::SelectionMode::NoSelection)
+    {
+        ui->list->selectionModel()->clearSelection();
+        ui->list->selectionModel()->select(modelIndex, QItemSelectionModel::Select);
+    }
+}
+
+bool SearchableList::getCurrentItem(SearchableListItem* dest)
+{
+    QModelIndex selected_index = ui->list->selectionModel()->currentIndex();
+    *dest = selected_index.data(Qt::UserRole).value<SearchableListItem>();
+
+    return true;
 }
 
 void SearchableList::setRowHeight(int height)

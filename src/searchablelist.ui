@@ -30,20 +30,64 @@
     <number>0</number>
    </property>
    <item>
-    <widget class="QLabel" name="nameLabel">
-     <property name="autoFillBackground">
-      <bool>false</bool>
-     </property>
-     <property name="styleSheet">
-      <string notr="true">background: transparent;</string>
-     </property>
-     <property name="text">
-      <string>TextLabel</string>
-     </property>
-    </widget>
+    <layout class="QHBoxLayout" name="horizontalLayout">
+     <item>
+      <widget class="QRadioButton" name="combo">
+       <property name="styleSheet">
+        <string notr="true">QRadioButton::indicator {
+    width:  9px;
+    height: 9px;
+    border-radius: 8px;
+    border: 4px solid #666666;
+    background: #666666;
+}
+
+QRadioButton::indicator::checked  {
+    width:  9px;
+    height: 9px;
+    border-radius: 8px;
+    border: 4px solid #666666;
+    background: #6fffff;
+}</string>
+       </property>
+       <property name="text">
+        <string notr="true">NAME </string>
+       </property>
+       <property name="checked">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="nameLabel">
+       <property name="autoFillBackground">
+        <bool>false</bool>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">background: transparent;</string>
+       </property>
+       <property name="text">
+        <string>TextLabel</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="horizontalSpacer">
+       <property name="orientation">
+        <enum>Qt::Orientation::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+    </layout>
    </item>
    <item>
-    <widget class="QLineEdit" name="filter">
+    <widget class="FocusableLineEdit" name="filter">
      <property name="styleSheet">
       <string notr="true">background: #404040</string>
      </property>
@@ -58,6 +102,13 @@
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>FocusableLineEdit</class>
+   <extends>QLineEdit</extends>
+   <header location="global">searchablelist.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

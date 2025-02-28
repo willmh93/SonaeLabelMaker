@@ -24,9 +24,16 @@ endif()
 
 file(GLOB PROJECT_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/Clipper2Lib/include/clipper2/*.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/Clipper2Lib/src/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.ui"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.qml"
+    #"${CMAKE_CURRENT_SOURCE_DIR}/src/SFC/*.hpp"
+    #"${CMAKE_CURRENT_SOURCE_DIR}/src/SFC/*.cpp"
+    #"${CMAKE_CURRENT_SOURCE_DIR}/src/SFC/nanosvg++/*.hpp"
+    #"${CMAKE_CURRENT_SOURCE_DIR}/src/SFC/nanosvg++/*.cpp"
     "resources.qrc"
 )
 
@@ -43,6 +50,17 @@ endif()
 source_group("Project" FILES ${CORE_SOURCES})
 source_group("UI" FILES ${UI_SOURCES})
 source_group("Styles" FILES ${STYLE_SOURCES})
+
+# Set zlib paths manually
+#set(ZLIB_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/zlib/include")
+#set(ZLIB_LIBRARY "${CMAKE_CURRENT_SOURCE_DIR}/external/zlib/lib")
+#find_package(ZLIB REQUIRED)
+
+# Set minizip paths
+#set(MINIZIP_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/minizip/include")
+#set(MINIZIP_LIBRARY "${CMAKE_CURRENT_SOURCE_DIR}/external/minizip/lib")
+#include_directories(${MINIZIP_INCLUDE_DIR})
+#link_directories(${MINIZIP_LIBRARY})
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(SonaeLabelMaker
@@ -68,6 +86,8 @@ else()
 endif()
 
 target_include_directories(SonaeLabelMaker PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_include_directories(SonaeLabelMaker PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/Clipper2Lib/include)
+target_include_directories(SonaeLabelMaker PRIVATE ${ZLIB_INCLUDE})
 
 #target_link_libraries(SonaeLabelMaker PRIVATE csv)
 
@@ -89,6 +109,11 @@ target_link_libraries(SonaeLabelMaker
     PRIVATE Qt${QT_VERSION_MAJOR}::Xml
     PRIVATE Qt${QT_VERSION_MAJOR}::Quick
     PRIVATE Qt${QT_VERSION_MAJOR}::QuickControls2
+    #PRIVATE ZLIB::ZLIB
+    #PRIVATE ${MINIZIP_LIBRARY}/bzip2.lib
+    #PRIVATE ${MINIZIP_LIBRARY}/lzma.lib
+    #PRIVATE ${MINIZIP_LIBRARY}/minizip.lib
+    #PRIVATE ${MINIZIP_LIBRARY}/zlibstatic-ng.lib
 )
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.

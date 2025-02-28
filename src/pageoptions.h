@@ -3,6 +3,7 @@
 
 #include <QWidget>
 #include <QStatusBar>
+#include <QPdfWriter>
 
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -14,6 +15,7 @@
 #include <QQmlComponent>
 #include <QColorDialog>
 
+#include "pdfbatchexport.h"
 #include "searchablelist.h"
 #include "pagepreview.h"
 #include "csv_reader.h"
@@ -24,7 +26,27 @@ namespace Ui {
 class PageOptions;
 }
 
+class PdfSceneWriter
+{
+public:
+    PdfSceneWriter();
+    ~PdfSceneWriter();
 
+    void start(float src_margin);
+    void addPage(QGraphicsScene* scene);
+    QByteArray finalize();
+
+private:
+
+    float src_margin;
+    QRectF page_rect = QRectF(0, 0, 2480, 3508);
+
+    QByteArray pdfData;
+    QBuffer pdfBuffer;
+    QPdfWriter* pdfWriter = nullptr;
+    QPainter* pdfPainter = nullptr;
+    bool firstPage = true;
+};
 
 class ComposerInfoGenerator
 {
@@ -156,6 +178,18 @@ public:
     }
 };
 
+enum ComposerResult
+{
+    SUCCEEDED=0ull,
+    MISSING_MATERIAL_CODE=1ull,
+    MISSING_GENERIC_CODE=2ull,
+    MISSING_PRODUCT_NAME=4ull,
+    MISSING_SHAPE=8ull,
+    MISSING_SHAPE_COLOR=16ull,
+    MISSING_BACK_COLOR=32ull
+};
+typedef unsigned long long ComposerResultInt;
+
 struct OilTypeEntry
 {
     CSVCellPtr cell_material_code;
@@ -165,8 +199,51 @@ struct OilTypeEntry
     CSVCellPtr cell_back_color;
 
     std::vector<CSVCellPtr> vendor_cells;
+
+    std::string mergedCode()
+    {
+        return cell_material_code->txt + "    " + cell_generic_code->txt;
+    }
 };
 typedef std::shared_ptr<OilTypeEntry> OilTypeEntryPtr;
+
+template<typename K, typename V>
+class flat_map : public std::vector<std::pair<K, V>>
+{
+public:
+
+    V &get(const K& k)
+    {
+        auto it = std::find_if(this->begin(), this->end(), [k](const auto &entry) {
+            return entry.first == k;
+        });
+
+        if (it == this->end())
+            return this->emplace_back(std::make_pair(k, V())).second;
+        
+        return it->second;
+    }
+
+    void set(const K& k, const V& v)
+    {
+        auto it = std::find(this->begin(), this->end(), k);
+        if (it == this->end())
+            this->emplace_back(std::make_pair(k, v));
+        else
+            it->second = v;
+    }
+
+    V& operator[](const K& k)
+    {
+        return get(k);
+    }
+
+    template<typename Comparator>
+    void sort(Comparator comp)
+    {
+        std::sort(this->begin(), this->end(), comp);
+    }
+};
 
 class PageOptions : public QWidget
 {
@@ -174,6 +251,8 @@ class PageOptions : public QWidget
 
     //CSVTable data;
     //std::vector<SearchableList*> field_widgets;
+
+    std::shared_ptr<std::vector<SearchableList*>> radio_lists;
 
     SearchableList* field_merged_code;
     SearchableList* field_shape;
@@ -184,6 +263,18 @@ class PageOptions : public QWidget
 
     PagePreview* pagePreview;
     QStatusBar* statusBar;
+
+    struct MergedCodeComparator {
+        bool operator()(const std::string& lhs, const std::string& rhs) const {
+            if (lhs.size() == rhs.size()) {
+                return lhs < rhs;
+            }
+            return lhs.size() < rhs.size();
+        }
+    };
+
+    flat_map<std::string, OilTypeEntryPtr> merged_code_entries;
+    flat_map<std::string, OilTypeEntryPtr> product_oiltype_entries;
 
     OilTypeEntryPtr selected_entry = nullptr;
 
@@ -200,9 +291,24 @@ public:
     }
 
     CSVReader csv;
-    FileManager* csv_picker;
-    FileManager* svg_picker;
-    FileManager* project_file_manager;
+    FileManager* csv_picker = nullptr;
+    FileManager* svg_picker = nullptr;
+    FileManager* project_file_manager = nullptr;
+    FileManager* pdf_exporter = nullptr;
+
+    PdfSceneWriter pdf_writer;
+
+    //QByteArray *pdfData = nullptr;
+    //QBuffer* pdfBuffer = nullptr;
+    //QPdfWriter* pdfWriter = nullptr;
+    //QPainter* pdfPainter = nullptr;
+    //int pdfPageOffset = 0;
+
+    PDFBatchExport* batch_dialog = nullptr;
+    QVector<QPair<QString, QByteArray>> pdfs;
+    int export_index = 0;
+    bool batch_export_busy = false;
+    
 
     QString nullableFieldPropTxt(std::string txt)
     {
@@ -216,8 +322,10 @@ public:
     //void populateOilTypeFields();
 
     void openCSV(const char *text);
-    void refreshData();
+
+    void rebuildDatabaseAndPopulateUI();
     void rebuildDatabase();
+    void repopulateLists();
 
     QByteArray serialize();
     void deserialize(const QByteArray& json);
@@ -233,9 +341,13 @@ public slots:
         // Apply the color to UI elements (e.g., change a label background)
     }*/
 
+    void processExportPDF();
+
 private:
     //QQmlApplicationEngine *engine;
-    void recomposePage();
+
+    QString getSelectedProduct();
+    ComposerResultInt recomposePage(QString product_name, OilTypeEntryPtr entry, std::function<void(QGraphicsScene*, ComposerResultInt)> callback=nullptr);
 
 private:
     Ui::PageOptions *ui;

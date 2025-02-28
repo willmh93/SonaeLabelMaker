@@ -60,6 +60,60 @@ struct string_ex : public std::string
     string_ex(const string &str) : string(str) {}
     string_ex(string::iterator it1, string::iterator it2) : string(it1, it2) {}
 
+    std::vector<string_ex> splitByWhitespace()
+    {
+        std::istringstream iss(*this);
+        std::vector<string_ex> tokens;
+        string_ex word;
+
+        while (iss >> word)
+            tokens.push_back(word);
+
+        return tokens;
+    }
+
+    bool compare(string_ex txt, bool fuzzy_space, bool case_sensitive)
+    {
+        if (fuzzy_space)
+        {
+            std::vector<string_ex> words_lhs = splitByWhitespace();
+            std::vector<string_ex> words_rhs = txt.splitByWhitespace();
+
+            if (words_lhs.size() != words_rhs.size())
+                return false;
+
+            if (case_sensitive)
+            {
+                for (size_t i = 0; i < words_lhs.size(); i++)
+                {
+                    if (words_lhs[i] != words_rhs[i])
+                        return false;
+                }
+            }
+            else
+            {
+                for (size_t i = 0; i < words_lhs.size(); i++)
+                {
+                    if (words_lhs[i].tolower() != words_rhs[i].tolower())
+                        return false;
+                }
+            }
+            return true;
+        }
+        else
+        {
+            if (case_sensitive)
+            {
+                return (*this) == txt;
+            }
+            else
+            {
+                return this->tolower() == txt.tolower();
+            }
+        }
+        return false;
+    }
+
     string_ex tolower()
     {
         string_ex ret(begin(), end());
@@ -249,6 +303,7 @@ public:
 
     // Adds columns setHeader identifier (multiple can exist)
     CSVCellPtr findCell(std::string txt, CSVRect r);
+    CSVCellPtr findCellFuzzy(std::string txt, CSVRect r, bool fuzzy_space=true, bool case_sensitive=false);
     CSVCellPtr findCellIf(std::function<bool(string_ex&)> valid, CSVRect r);
     std::vector<CSVCellPtr> findCellsWith(std::string txt, CSVRect r);
 

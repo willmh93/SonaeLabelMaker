@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>500</width>
+    <width>712</width>
     <height>583</height>
    </rect>
   </property>
@@ -199,6 +199,32 @@ QPushButton {
            </size>
           </property>
          </spacer>
+        </item>
+        <item>
+         <widget class="QPushButton" name="pdf_btn">
+          <property name="minimumSize">
+           <size>
+            <width>120</width>
+            <height>32</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>Export PDF</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="batch_pdf_btn">
+          <property name="minimumSize">
+           <size>
+            <width>120</width>
+            <height>32</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>Batch Export PDF</string>
+          </property>
+         </widget>
         </item>
        </layout>
       </widget>

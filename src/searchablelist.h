@@ -3,11 +3,13 @@
 
 #include <QWidget>
 #include <QListView>
+#include <QLineEdit>
 #include <QStandardItemModel>
 #include <QStandardItem>
 #include <QSortFilterProxyModel>
 #include <QStyledItemDelegate>
 #include <QPainter>
+
 
 #include <any>
 
@@ -15,6 +17,32 @@ namespace Ui {
 class SearchableList;
 }
 
+class FocusableLineEdit : public QLineEdit
+{
+    Q_OBJECT
+
+public:
+    FocusableLineEdit(QWidget* parent = nullptr) : QLineEdit(parent) {}
+
+protected:
+    void focusInEvent(QFocusEvent* event) override {
+        QLineEdit::focusInEvent(event);  // Call base class implementation
+        qDebug() << "Line edit focused";
+        // Emit custom signal if needed
+        emit focusGained();
+    }
+
+    void focusOutEvent(QFocusEvent* event) override {
+        QLineEdit::focusOutEvent(event);  // Call base class implementation
+        qDebug() << "Line edit lost focus";
+        // Emit custom signal if needed
+        emit focusLost();
+    }
+
+signals:
+    void focusGained();
+    void focusLost();
+};
 
 struct SearchableListItem
 {
@@ -238,11 +266,20 @@ class SearchableList : public QWidget
     Q_OBJECT
 
     std::string field_id;
+    QString name;
+
+    bool filterable = true;
+    std::shared_ptr<std::vector<SearchableList*>> other_lists = nullptr;
 
     //std::vector<SearchableListItem> all_items;
 
+protected:
+
+    void _setRadioChecked(bool b, bool blockSignals=false);
+
 public:
 
+    std::function<void(bool)> on_radio_toggle = nullptr;
     std::function<void(SearchableListItem&, QPainter* painter, QRect&r)> icon_painter = nullptr;
     std::function<void(SearchableListItem&)> icon_click_callback = nullptr;
     std::function<void(SearchableListItem&)> item_doubleclick_callback = nullptr;
@@ -264,6 +301,18 @@ public:
 
     void setName(const QString& name);
     const std::string &fieldId() { return field_id; }
+
+    void refreshLayoutUI();
+    void setFilterable(bool b);
+
+    void setRadioGroup(std::shared_ptr<std::vector<SearchableList*>> other_lists=nullptr);
+    void setRadioChecked(bool b);
+    bool getRadioChecked();
+
+    void onRadioToggled(std::function<void(bool b)> _onToggle)
+    {
+        on_radio_toggle = _onToggle;
+    }
 
     void setIconPainter(std::function<void(SearchableListItem&, QPainter* painter, QRect& r)> _icon_painter)
     {
@@ -333,10 +382,16 @@ public:
         return model.find(txt);
     }*/
 
+    void updateSelectionModel();
+
+    void clearFilter();
+
     void setSelectable(bool b);
     void setCurrentItem(int i);
     void setCurrentItem(const QString &txt);
-    void setCurrentItem(SearchableListItem *item);
+    void setCurrentItem(SearchableListItem* item);
+
+    bool getCurrentItem(SearchableListItem* item);
 
     void setRowHeight(int height);
 

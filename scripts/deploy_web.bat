@@ -12,6 +12,7 @@ copy %BUILD_DIR%\*.html %DEPLOY_DIR%\index.html
 copy %BUILD_DIR%\*.js %DEPLOY_DIR%\
 copy %BUILD_DIR%\*.wasm %DEPLOY_DIR%\
 copy %BUILD_DIR%\*.svg %DEPLOY_DIR%\
+copy %BUILD_DIR%\*.png %DEPLOY_DIR%\
 
 :: Override with custom files
 

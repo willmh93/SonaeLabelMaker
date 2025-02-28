@@ -104,6 +104,22 @@ CSVCellPtr CSVReader::findCell(std::string txt, CSVRect r)
     return nullptr;
 }
 
+CSVCellPtr CSVReader::findCellFuzzy(std::string txt, CSVRect r, bool fuzzy_space, bool case_sensitive)
+{
+    int row_last = (r.row_last == CSVRect::END) ? (table.size() - 1) : r.row_last;
+    for (int _row = r.row_first; _row <= row_last; _row++)
+    {
+        int col_last = (r.col_last == CSVRect::END) ? (table[_row].size() - 1) : r.col_last;
+        for (int _col = r.col_first; _col <= col_last; _col++)
+        {
+            CSVCellPtr raw_cell = table[_row][_col];
+            if (raw_cell->txt.compare(txt, fuzzy_space, case_sensitive))
+                return raw_cell;
+        }
+    }
+    return nullptr;
+}
+
 CSVCellPtr CSVReader::findCellIf(std::function<bool(string_ex&)> valid, CSVRect r)
 {
     int row_last = (r.row_last == CSVRect::END) ? (table.size() - 1) : r.row_last;

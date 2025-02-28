@@ -3,6 +3,12 @@
 #include <QApplication>
 #include <QFile>
 
+#define NANOSVG_ALL_COLOR_KEYWORDS
+#define NANOSVG_IMPLEMENTATION
+#include "nanosvg.h"
+#include "clipper2/clipper.h"
+
+//#include <QFontDatabase>
 
 /*void copyQtLogo()
 {
@@ -17,6 +23,21 @@ int main(int argc, char *argv[])
     QApplication::setStyle("fusion");
 
     QApplication a(argc, argv);
+
+    /*int fontId = QFontDatabase::addApplicationFont(":/res/code128.ttf");
+    if (fontId == -1) {
+        qWarning() << "Failed to load barcode font!";
+        return -1;
+    }*/
+
+    QPalette palette = a.palette();
+
+    // Set the text colors you want (for instance, white)
+    palette.setColor(QPalette::WindowText, Qt::white);
+    palette.setColor(QPalette::Text, Qt::white);
+
+    // Apply the palette globally
+    a.setPalette(palette);
 
     QFont defaultFont = a.font();
     defaultFont.setPointSize(9); // Set a fixed font size

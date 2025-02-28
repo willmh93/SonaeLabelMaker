@@ -39,5 +39,8 @@
         <file>res/icon_find.svg</file>
         <file>res/icon_save.svg</file>
         <file>res/icon_unbox.svg</file>
+        <file>res/code128.ttf</file>
+        <file>res/arial_bold.ttf</file>
+        <file>res/logo2.png</file>
     </qresource>
 </RCC>
