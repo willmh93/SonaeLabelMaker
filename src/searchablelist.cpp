@@ -75,8 +75,30 @@ SearchableList::~SearchableList()
 void SearchableList::setName(const QString &_name)
 {
     name = _name;
-
     refreshLayoutUI();
+}
+
+
+//template<typename T>
+
+void SearchableList::setCustomWidget(QWidget* w)
+{
+    //if (custom_widget)
+    {
+        //ui->tools_frame->removeWidget(w);
+        //delete custom_widget;
+    }
+    //custom_widget = w;
+
+    //w->setParent(this);
+    //w->setLayout(ui->tools_frame->layout());
+    //ui->tools_frame->la
+
+    //if (custom_widget)
+    //    delete custom_widget;
+
+    //custom_widget = new T();
+    //return custom_widget;
 }
 
 void SearchableList::refreshLayoutUI()
@@ -100,6 +122,8 @@ void SearchableList::refreshLayoutUI()
         ui->filter->show();
     else
         ui->filter->hide();
+
+ 
 }
 
 void SearchableList::setFilterable(bool b)

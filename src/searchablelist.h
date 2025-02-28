@@ -302,6 +302,9 @@ public:
     void setName(const QString& name);
     const std::string &fieldId() { return field_id; }
 
+    //template<typename T>
+    void setCustomWidget(QWidget *w);
+
     void refreshLayoutUI();
     void setFilterable(bool b);
 
@@ -399,6 +402,7 @@ public:
 private:
 
     Ui::SearchableList *ui;
+    QWidget* custom_widget = nullptr;
 
     CustomListModel  model;
     CustomFilterProxyModel proxyModel;

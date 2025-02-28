@@ -303,7 +303,7 @@ QGraphicsScene *PagePreview::composeScene(const ComposerInfo& info)
 
     //tag_piximap.load("C:/Git/C++/Projects/SonaeLabelMaker/tags/Grease Gun.png");
     logo_piximap.load(":/res/logo.png");
-    logo2_piximap.load(":/res/logo2.png");
+    logo2_piximap.load(":/res/logo2.jpg");
 
     // Are body border
     QPen line_pen(Qt::black);
@@ -423,7 +423,7 @@ QGraphicsScene *PagePreview::composeScene(const ComposerInfo& info)
 
     //qreal 
     setItemHeight(logo_item, logo_height);
-    setItemHeight(logo2_item, logo_height*0.9);
+    setItemHeight(logo2_item, logo_height);
     //fitItemSize(tag_item, tag_rect.size());
     
 

@@ -41,6 +41,6 @@
         <file>res/icon_unbox.svg</file>
         <file>res/code128.ttf</file>
         <file>res/arial_bold.ttf</file>
-        <file>res/logo2.png</file>
+        <file>res/logo2.jpg</file>
     </qresource>
 </RCC>

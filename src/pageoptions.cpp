@@ -7,7 +7,7 @@
 
 #include "pageoptions.h"
 #include "ui_pageoptions.h"
-
+#include "fieldtoolbar.h"
 
 #include "file_uploader.h"
 
@@ -345,6 +345,9 @@ PageOptions::PageOptions(QStatusBar* _statusBar, QWidget *parent)
     field_merged_code->setRadioGroup(radio_lists);
     field_products->setRadioGroup(radio_lists);
     field_merged_code->setRadioChecked(true);
+
+    // Field toolbars
+    field_shape->setCustomWidget(new FieldToolbar());
 
     // Provide icon painter callbacks
     field_shape->setIconPainter([this](SearchableListItem& item, QPainter* painter, QRect& r)
