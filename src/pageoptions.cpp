@@ -1,6 +1,6 @@
 #include <QPushButton>
 #include <QSvgRenderer>
-
+#include <QMessageBox>
 
 #include <string>
 #include <algorithm>
@@ -429,7 +429,7 @@ PageOptions::PageOptions(QStatusBar* _statusBar, QWidget *parent)
         {
             composerGenerator.setShapeInfo(item.txt, ShapeInfo::fromData(data));
             field_shape->refresh();
-            recomposePage(getSelectedProduct(), selected_entry);
+            recomposePage(getSelectedProduct(), selected_entry, true);
         });
     };
 
@@ -440,7 +440,7 @@ PageOptions::PageOptions(QStatusBar* _statusBar, QWidget *parent)
         connect(color_picker, &QColorDialog::colorSelected, this, [this, item](const QColor& color) {
             composerGenerator.setShapeColor(item.txt, color);
             field_shape_col->refresh();
-            recomposePage(getSelectedProduct(), selected_entry);
+            recomposePage(getSelectedProduct(), selected_entry, true);
         });
         color_picker->open();
     };
@@ -452,7 +452,7 @@ PageOptions::PageOptions(QStatusBar* _statusBar, QWidget *parent)
         connect(color_picker, &QColorDialog::colorSelected, this, [this, item](const QColor& color) {
             composerGenerator.setBackColor(item.txt, color);
             field_back_col->refresh();
-            recomposePage(getSelectedProduct(), selected_entry);
+            recomposePage(getSelectedProduct(), selected_entry, true);
         });
         color_picker->open();
     };
@@ -494,7 +494,7 @@ PageOptions::PageOptions(QStatusBar* _statusBar, QWidget *parent)
         field_shape_col->setCurrentItem(nullableFieldPropTxt(selected_entry->cell_shape_color->txt));
         field_back_col->setCurrentItem(nullableFieldPropTxt(selected_entry->cell_back_color->txt));
 
-        recomposePage(getSelectedProduct(), selected_entry);
+        recomposePage(getSelectedProduct(), selected_entry, true);
     });
 
     // Detect product list selection change
@@ -511,7 +511,7 @@ PageOptions::PageOptions(QStatusBar* _statusBar, QWidget *parent)
         field_shape_col->setCurrentItem(nullableFieldPropTxt(selected_entry->cell_shape_color->txt));
         field_back_col->setCurrentItem(nullableFieldPropTxt(selected_entry->cell_back_color->txt));
 
-        recomposePage(getSelectedProduct(), selected_entry);
+        recomposePage(getSelectedProduct(), selected_entry, true);
     });
 
     // Load Project button
@@ -553,7 +553,7 @@ PageOptions::PageOptions(QStatusBar* _statusBar, QWidget *parent)
     // Single PDF button
     connect(ui->pdf_btn, &QPushButton::clicked, this, [this]()
     {
-        recomposePage(getSelectedProduct(), selected_entry, [this](QGraphicsScene* scene, ComposerResultInt result)
+        recomposePage(getSelectedProduct(), selected_entry, false, [this](QGraphicsScene* scene, ComposerResultInt result)
         {
             if (result == ComposerResult::SUCCEEDED)
             {
@@ -563,6 +563,7 @@ PageOptions::PageOptions(QStatusBar* _statusBar, QWidget *parent)
             else
             {
                 // Handle error
+                QMessageBox::critical(this, "Error", "Selected product missing data for composition.");
             }
         });
     });
@@ -721,7 +722,7 @@ void PageOptions::processExportPDF()
     auto pair = product_oiltype_entries.at(export_index);
     
     // Process current file
-    recomposePage(pair.first.c_str(), pair.second, [this, pair](QGraphicsScene* scene, ComposerResultInt result)
+    recomposePage(pair.first.c_str(), pair.second, false, [this, pair](QGraphicsScene* scene, ComposerResultInt result)
     {
         if (scene && result == ComposerResult::SUCCEEDED)
         {
@@ -781,7 +782,11 @@ QString PageOptions::getSelectedProduct()
     return "";
 }
 
-ComposerResultInt PageOptions::recomposePage(QString product_name, OilTypeEntryPtr entry, std::function<void(QGraphicsScene *, ComposerResultInt)> callback)
+ComposerResultInt PageOptions::recomposePage(
+    QString product_name, 
+    OilTypeEntryPtr entry, 
+    bool allow_errors,
+    std::function<void(QGraphicsScene *, ComposerResultInt)> callback)
 {
     ComposerResultInt ret = 0;
 
@@ -814,7 +819,7 @@ ComposerResultInt PageOptions::recomposePage(QString product_name, OilTypeEntryP
             ret |= ComposerResult::MISSING_BACK_COLOR;
 
 
-        if (ret == ComposerResult::SUCCEEDED)
+        if (allow_errors || ret == ComposerResult::SUCCEEDED)
         {
             composeInfo.autoDetermineStroke();
             QGraphicsScene* scene = pagePreview->composeScene(composeInfo);
@@ -855,37 +860,30 @@ void PageOptions::rebuildDatabase()
 
         // Find headers and assign id's
         {
+            auto header_identifier_cell = csv.findCellFuzzy("HEADERS");
+            int header_row = header_identifier_cell->row;
+
             CSVRect headers_r(
-                CSVRect::BEG, CSVRect::BEG,
-                CSVRect::END, 3
+                CSVRect::BEG, header_row,
+                CSVRect::END, header_row
             );
 
-            csv.setHeader(csv.findCellFuzzy("CORRECT MATERIAL CODE", headers_r))
-                ->setCustomId("material_code");
-
-            csv.setHeader(csv.findCellFuzzy("GENERIC CODE", headers_r))
-                ->setCustomId("generic_code");
+            csv.setHeader(csv.findCell("SA_Material_Code", headers_r))->setCustomId("material_code");
+            csv.setHeader(csv.findCell("Generic_Code", headers_r))->setCustomId("generic_code");
 
             // Find all manufacturer headers
-            auto vendor_header_cells = csv.findCellsWith("VENDOR", headers_r);
+            auto vendor_header_cells = csv.findCellsFuzzy("Vendor", headers_r, true, false);
             for (size_t i = 0; i < vendor_header_cells.size(); i++)
-                vendor_headers.push_back(csv.setHeader(vendor_header_cells[i])->setCustomId("vendor_" + QString::number(i).toStdString()));
+            {
+                vendor_headers.push_back(
+                    csv.setHeader(vendor_header_cells[i])
+                      ->setCustomId("vendor_" + QString::number(i).toStdString())
+                );
+            }
 
-            csv.setHeader(csv.findCellIf([](string_ex& txt) {
-                return txt.contains("Shape") && txt.contains("Visc Grade");
-            }, headers_r))->setCustomId("shape");
-
-            csv.setHeader(csv.findCellIf([](string_ex& txt) {
-                return txt.contains("Shape Colour");
-            }, headers_r))->setCustomId("shape_color");
-
-            csv.setHeader(csv.findCellIf([](string_ex& txt) {
-                return txt.contains("Shape Colour");
-            }, headers_r))->setCustomId("shape_color");
-
-            csv.setHeader(csv.findCellIf([](string_ex& txt) {
-                return txt.contains("Background Colour");
-            }, headers_r))->setCustomId("back_color");
+            csv.setHeader(csv.findCell("Shape", headers_r))->setCustomId("shape");
+            csv.setHeader(csv.findCell("ShapeColour", headers_r))->setCustomId("shape_color");
+            csv.setHeader(csv.findCell("BackColour", headers_r))->setCustomId("back_color");
         }
 
         csv.readData();

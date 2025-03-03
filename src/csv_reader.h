@@ -172,11 +172,12 @@ struct CSVRect
         END = -1
     };
 
-    int col_first;
-    int row_first;
-    int col_last;
-    int row_last;
+    int col_first = BEG;
+    int row_first = BEG;
+    int col_last = END;
+    int row_last = END;
 
+    CSVRect() {}
     CSVRect(int col_first, int row_first, int col_last, int row_last)
     :
         col_first(col_first),
@@ -302,10 +303,12 @@ public:
     bool read_cell(CSVCellInfo &info);
 
     // Adds columns setHeader identifier (multiple can exist)
-    CSVCellPtr findCell(std::string txt, CSVRect r);
-    CSVCellPtr findCellFuzzy(std::string txt, CSVRect r, bool fuzzy_space=true, bool case_sensitive=false);
-    CSVCellPtr findCellIf(std::function<bool(string_ex&)> valid, CSVRect r);
-    std::vector<CSVCellPtr> findCellsWith(std::string txt, CSVRect r);
+    CSVCellPtr findCell(std::string txt, CSVRect r = CSVRect());
+    CSVCellPtr findCellFuzzy(std::string txt, CSVRect r = CSVRect(), bool fuzzy_space=true, bool case_sensitive=false);
+    CSVCellPtr findCellIf(std::function<bool(string_ex&)> valid, CSVRect r = CSVRect());
+    std::vector<CSVCellPtr> findCells(std::string txt, CSVRect r = CSVRect());
+    std::vector<CSVCellPtr> findCellsFuzzy(std::string txt, CSVRect r = CSVRect(), bool fuzzy_space = true, bool case_sensitive = false);
+    std::vector<CSVCellPtr> findCellsWith(std::string txt, CSVRect r = CSVRect());
 
     CSVHeaderPtr setHeader(CSVCellPtr cell);
     void readData();

@@ -56,7 +56,7 @@ int main(int argc, char *argv[])
     window.setWindowFlags(Qt::FramelessWindowHint);
     #else
     QList<QScreen*> screens = QGuiApplication::screens();
-    int screenIndex = 3; // Change this to select the desired screen (0 = primary, 1 = second monitor, etc.)
+    int screenIndex = 4; // Change this to select the desired screen (0 = primary, 1 = second monitor, etc.)
 
     if (screenIndex >= 0 && screenIndex < screens.size()) {
         QScreen* targetScreen = screens.at(screenIndex);

@@ -347,7 +347,11 @@ private:
     //QQmlApplicationEngine *engine;
 
     QString getSelectedProduct();
-    ComposerResultInt recomposePage(QString product_name, OilTypeEntryPtr entry, std::function<void(QGraphicsScene*, ComposerResultInt)> callback=nullptr);
+    ComposerResultInt recomposePage(
+        QString product_name, 
+        OilTypeEntryPtr entry,
+        bool allow_errors,
+        std::function<void(QGraphicsScene*, ComposerResultInt)> callback=nullptr);
 
 private:
     Ui::PageOptions *ui;
