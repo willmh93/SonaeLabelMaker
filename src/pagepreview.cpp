@@ -453,6 +453,11 @@ QGraphicsScene *PagePreview::composeScene(const ComposerInfo& info)
 }
 
 
+QTableView* PagePreview::getTable()
+{
+    return ui->csv_table;
+}
+
 void PagePreview::refitPageView()
 {
     auto* view = ui->pageView;
@@ -526,6 +531,14 @@ void PageGraphicsView::wheelEvent(QWheelEvent* e)
     scale(sf, sf);
     e->accept();
 
-    PagePreview* page_preview = qobject_cast<PagePreview*>(parent());
+    QWidget *tab_page = parentWidget();
+    QWidget *tabs_list = tab_page->parentWidget();
+    QWidget *tabs = tabs_list->parentWidget();
+
+    //QString tabs_page_id = tab_page->objectName();
+    //QString tabs_list_id = tabs_list->objectName();
+    //QString tabs_id = tabs->objectName();
+
+    PagePreview* page_preview = qobject_cast<PagePreview*>(tabs->parentWidget());
     page_preview->fit_view_lock = false;
 }

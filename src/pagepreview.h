@@ -25,6 +25,8 @@
 #include <QJsonArray>
 #include <QJsonValue>
 
+#include <QTableView>
+
 #include "nanosvg.h"
 
 #include <climits>
@@ -1067,12 +1069,13 @@ public:
     //    -shape_padding
     //);
     
-
-
     QRect page_rect = QRect(0, 0, page_width, page_height);
     QRect view_area_rect = page_rect.adjusted(-view_margin, -view_margin, view_margin, view_margin);
     QRect page_body_rect = page_rect.adjusted(page_margin, page_margin, -page_margin, -page_margin);
     
+    
+    QTableView* getTable();
+
 private:
 
     QTextOption textOption;

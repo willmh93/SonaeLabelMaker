@@ -15,6 +15,8 @@
 #include <QQmlComponent>
 #include <QColorDialog>
 
+#include <QStandardItemModel>
+
 #include "pdfbatchexport.h"
 #include "searchablelist.h"
 #include "pagepreview.h"
@@ -277,7 +279,7 @@ class PageOptions : public QWidget
     
     SearchableList* field_products;
 
-    PagePreview* pagePreview;
+    PagePreview* pagePreview = nullptr;
     QStatusBar* statusBar;
 
     struct MergedCodeComparator {
@@ -307,12 +309,17 @@ public:
     }
 
     CSVReader csv;
+    QString project_filename;
+    QString csv_filename;
+
     FileManager* csv_picker = nullptr;
     FileManager* svg_picker = nullptr;
     FileManager* project_file_manager = nullptr;
     FileManager* pdf_exporter = nullptr;
 
     PdfSceneWriter pdf_writer;
+
+    QStandardItemModel table_model;
 
     //QByteArray *pdfData = nullptr;
     //QBuffer* pdfBuffer = nullptr;
@@ -336,6 +343,8 @@ public:
     SearchableList* addSearchableListRow1(QString field_id, QString field_name);
     SearchableList* addSearchableListRow2(QString field_id, QString field_name);
     //void populateOilTypeFields();
+
+    void updateStatusBar();
 
     void openCSV(const char *text);
 

@@ -4,14 +4,26 @@
 
 void CSVReader::open(const char* txt)
 {
+    clear();
+
+    stream.clear();
     stream.str(txt);
+
+    file_opened = true;
+    
+    read_raw_table();
+}
+
+void CSVReader::clear()
+{
+    table.clear();
+    headers.clear();
+
     col = row = 0;
     ch_index = 0;
     max_header_row = 0;
     data_loaded = false;
-    file_opened = true;
-
-    read_raw_table();
+    file_opened = false;
 }
 
 void CSVReader::read_raw_table()
@@ -220,6 +232,11 @@ CSVHeaderPtr CSVReader::setHeader(CSVCellPtr cell)
         max_header_row = header->max_row;
 
     return header;
+}
+
+std::vector<CSVHeaderPtr> CSVReader::getHeaders()
+{
+    return headers;
 }
 
 void CSVReader::readData()

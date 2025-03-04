@@ -19,7 +19,21 @@ MainWindow::MainWindow(QWidget *parent)
         QMenuBar* menuBar = new QMenuBar(this);
         setMenuBar(menuBar);
 
-        menuBar->setStyleSheet("QMenuBar { color: rgb(255,255,255); background-color: #1e1e1e; }");
+        menuBar->setStyleSheet("\
+            QMenuBar {                            \
+                background: #1e1e1e;              \
+            }                                     \
+            QMenu {                               \
+                background-color: #1e1e1e;        \
+                border: 1px solid black;          \
+            }                                     \
+            QMenu::item{                          \
+                background-color: transparent;    \
+            }                                     \
+            QMenu::item:selected{                 \
+                background-color: #4e4e4e;        \
+            }"
+        );
 
         // Create File menu
         QMenu* fileMenu = menuBar->addMenu("File");

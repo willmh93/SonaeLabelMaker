@@ -21,9 +21,7 @@
    <bool>false</bool>
   </property>
   <property name="styleSheet">
-   <string notr="true">QFrame {
-    background-color: rgb(50, 50, 50);
-}</string>
+   <string notr="true">background-color: rgb(50, 50, 50);</string>
   </property>
   <property name="modal">
    <bool>true</bool>

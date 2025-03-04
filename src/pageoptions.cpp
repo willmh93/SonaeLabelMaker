@@ -1,6 +1,7 @@
 #include <QPushButton>
 #include <QSvgRenderer>
 #include <QMessageBox>
+#include <QTableView>
 
 #include <string>
 #include <algorithm>
@@ -556,7 +557,8 @@ PageOptions::PageOptions(QStatusBar* _statusBar, QWidget *parent)
             deserialize(data);
             rebuildDatabaseAndPopulateUI();
 
-            statusBar->showMessage("Project:   " + filename);
+            project_filename = filename;
+            updateStatusBar();
         });
     });
 
@@ -578,6 +580,9 @@ PageOptions::PageOptions(QStatusBar* _statusBar, QWidget *parent)
         {
             openCSV(data.toStdString().c_str());
             rebuildDatabaseAndPopulateUI();
+
+            csv_filename = filename;
+            updateStatusBar();
         });
     });
 
@@ -867,8 +872,14 @@ ComposerResultInt PageOptions::recomposePage(
     return ret;
 }
 
+void PageOptions::updateStatusBar()
+{
+    statusBar->showMessage("Project:   " + project_filename + "       CSV:   " + csv_filename);
+}
+
 void PageOptions::openCSV(const char* text)
 {
+    csv.clear();
     csv.open(text);
     rebuildDatabaseAndPopulateUI();
 }
@@ -1027,6 +1038,101 @@ void PageOptions::repopulateLists()
             field_back_col->addUniqueListItem(key);
     }
 
+    // Repopulate table
+    if (pagePreview)
+    {
+        QTableView* table = pagePreview->getTable();
+        table->setModel(&table_model);
+
+        int row = 0;
+        /*{
+            QList<QStandardItem*> rowItems;
+            rowItems.append(new QStandardItem("Hello 1!"));
+            rowItems.append(new QStandardItem("Hello 2!"));
+            rowItems.append(new QStandardItem("Hello 3!"));
+            table_model.insertRow(row++, rowItems);
+        }
+        {
+            QList<QStandardItem*> rowItems;
+            rowItems.append(new QStandardItem("World 1!"));
+            rowItems.append(new QStandardItem("World 2!"));
+            rowItems.append(new QStandardItem("World 3!"));
+            table_model.insertRow(row++, rowItems);
+        }*/
+
+        table_model.clear();
+
+        auto csv_headers = csv.getHeaders();
+
+        QStringList headers;
+        //for (auto header : csv_headers)
+        //    headers.push_back(header->subheaders.back()->txt.c_str());
+
+        std::vector<OilTypeEntryPtr> sorted_entries;
+        for (const auto& [merged_code, entry] : merged_code_entries)
+            sorted_entries.push_back(entry);
+
+        std::sort(sorted_entries.begin(), sorted_entries.end(), [](OilTypeEntryPtr a, OilTypeEntryPtr b)
+        {
+            long long mat_a = a->cell_material_code->txt.size() ? std::stoll(a->cell_material_code->txt) : 0;
+            long long mat_b = b->cell_material_code->txt.size() ? std::stoll(b->cell_material_code->txt) : 0;
+            return mat_a < mat_b;
+        });
+
+        for (OilTypeEntryPtr entry : sorted_entries)
+        {
+            QList<QStandardItem*> rowItems;
+
+            qsizetype col = 0;
+
+            // Material code
+            if (col >= headers.size()) headers.resize(col+1);
+            headers[col++] = "Material Code";
+
+            rowItems.append(new QStandardItem(entry->cell_material_code->txt.c_str()));
+
+            // Generic code
+            if (col >= headers.size()) headers.resize(col + 1);
+            headers[col++] = "Generic Code";
+
+            rowItems.append(new QStandardItem(entry->cell_generic_code->txt.c_str()));
+
+            // Shape
+            if (col >= headers.size()) headers.resize(col + 1);
+            headers[col++] = entry->cell_shape->header->subheaders.back()->txt.c_str();
+
+            QString shape_txt = entry->cell_shape->txt.c_str();
+            rowItems.append(new QStandardItem(shape_txt));
+
+            // Shape Color
+            if (col >= headers.size()) headers.resize(col + 1);
+            headers[col++] = entry->cell_shape_color->header->subheaders.back()->txt.c_str();
+
+            QString shape_col_txt = entry->cell_shape_color->txt.c_str();
+            rowItems.append(new QStandardItem(shape_col_txt));
+
+            // Back Color
+            if (col >= headers.size()) headers.resize(col + 1);
+            headers[col++] = entry->cell_back_color->header->subheaders.back()->txt.c_str();
+
+            QString back_col_txt = entry->cell_back_color->txt.c_str();
+            rowItems.append(new QStandardItem(back_col_txt));
+
+            for (auto vendor_cell : entry->vendor_cells)
+            {
+                if (col >= headers.size()) headers.resize(col + 1);
+                headers[col++] = vendor_cell->header->subheaders.back()->txt.c_str();
+
+                QString vendor_txt = vendor_cell->txt.c_str();
+                rowItems.append(new QStandardItem(vendor_txt));
+            }
+
+            table_model.insertRow(row++, rowItems);
+        }
+
+        table_model.setHorizontalHeaderLabels(headers);
+        table->resizeColumnsToContents();
+    }
     //field_merged_code->setSelectable(false);
 }
 

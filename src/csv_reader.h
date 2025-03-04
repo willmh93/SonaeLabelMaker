@@ -298,6 +298,7 @@ public:
 
     CSVReader() {}
     void open(const char* txt);
+    void clear();
 
     void read_raw_table();
     bool read_cell(CSVCellInfo &info);
@@ -311,6 +312,8 @@ public:
     std::vector<CSVCellPtr> findCellsWith(std::string txt, CSVRect r = CSVRect());
 
     CSVHeaderPtr setHeader(CSVCellPtr cell);
+    std::vector<CSVHeaderPtr> getHeaders();
+
     void readData();
 
     bool opened()
@@ -342,31 +345,4 @@ public:
     {
         return static_cast<int>(table.size());
     }
-
-    //CSVHeaderPtr header_if(
-    //    std::string custom_id,
-    //    std::function<bool(string_ex&)> valid,
-    //    CSVHeaderPtr after = nullptr
-    //);
-
-    //void next_row_first_cell(CSVCellInfo& info);
-
-    //CSVHeaderPtr setHeader(std::string custom_id, std::string header_txt);
-    ////CSVHeaderPtr header_regex(std::string custom_id, std::string pattern);
-    ////CSVHeaderPtr header_with(std::string custom_id, std::string substr);
-    //CSVHeaderPtr header_if(
-    //    std::string custom_id, 
-    //    std::function<bool(string_ex&)> valid,
-    //    CSVHeaderPtr after=nullptr
-    //);
-
-    //std::vector<CSVHeaderPtr> headers_if(std::function<bool(string_ex&)> valid);
-
-    //CSVHeaderPtr add_header(int col, string_ex header_txt);
-    //void headers_start(std::string header_item);
-
-    //CSVCellInfo cell;
-    //bool read_row(CSVRow *data_row);
-
-    //void read_data(vector<CSVRow>& data);
 };
