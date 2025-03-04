@@ -7,10 +7,13 @@
 #include <QStyle>
 #include "pagepreview.h"
 #include "pageoptions.h"
+#include "instructions.h"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
 {
+    
+    //setStyleSheet("background-color: red;");
 
     {
         QMenuBar* menuBar = new QMenuBar(this);
@@ -52,9 +55,32 @@ MainWindow::MainWindow(QWidget *parent)
     statusBar->showMessage("No project active");
     setStatusBar(statusBar);
 
+    const QString splitterSheet = "\
+        QSplitter { background: #1e1e1e; } \
+        QSplitter::handle {                       \
+            image: url(:/res/splitter_handle.png); \
+        }                                          \
+        QSplitter::handle:horizontal{              \
+            width: 6px;                            \
+        }                                          \
+        QSplitter::handle:vertical{              \
+            height: 6px;                           \
+        }";
     //QVBoxLayout *layout = new QVBoxLayout(this);
     QSplitter* mainSplitter = new QSplitter(Qt::Horizontal, this);
-    //mainSplitter->setStyleSheet("QSplitter:handle { color: rgb(0,0,0); background: #1e1e1e; }");
+    mainSplitter->setStyleSheet(splitterSheet);
+    //mainSplitter->setStyleSheet(splitterSheet
+        //"QSplitter {\
+        //    background-color: #fe1e1e;\
+        //}\
+        //QSplitter::handle {\
+        //    color: rgb(0,0,0);\
+        //    border: 3px dashed black;\
+        //    margin: 1px 50px;\
+        //    min - height: 10px;\
+        //    max - height: 10px;\
+        //}"
+    //);
 
     pageOptions = new PageOptions(statusBar, this);
     pagePreview = new PagePreview(this);
@@ -70,6 +96,13 @@ MainWindow::MainWindow(QWidget *parent)
 
     setCentralWidget(mainSplitter);
     qDebug() << "Widget Effective Style:" << pageOptions->style()->objectName();
+
+    QTimer timer;
+    timer.singleShot(1000, [this]() {
+        Instructions* instructions = new Instructions(this);
+        instructions->setFixedSize(instructions->size());
+        instructions->show();
+    });
 }
 
 MainWindow::~MainWindow() {}

@@ -200,11 +200,25 @@ struct OilTypeEntry
 
     std::vector<CSVCellPtr> vendor_cells;
 
+    //bool detected_userflag_vendor_notdefined = false;
+
+    bool missingData()
+    {
+        if (cell_material_code->txt.size() == 0) return true;
+        if (cell_generic_code->txt.size() == 0) return true;
+        if (cell_shape->txt.size() == 0) return true;
+        if (cell_shape_color->txt.size() == 0) return true;
+        if (cell_shape_color->txt.size() == 0) return true;
+        return false;
+
+    }
+
     std::string mergedCode()
     {
         return cell_material_code->txt + "    " + cell_generic_code->txt;
     }
 };
+
 typedef std::shared_ptr<OilTypeEntry> OilTypeEntryPtr;
 
 template<typename K, typename V>
@@ -251,6 +265,8 @@ class PageOptions : public QWidget
 
     //CSVTable data;
     //std::vector<SearchableList*> field_widgets;
+
+    QByteArray warning_icon_data;
 
     std::shared_ptr<std::vector<SearchableList*>> radio_lists;
 

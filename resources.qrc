@@ -42,5 +42,8 @@
         <file>res/code128.ttf</file>
         <file>res/arial_bold.ttf</file>
         <file>res/logo2.jpg</file>
+        <file>res/warning.svg</file>
+        <file>res/paperclip.svg</file>
+        <file>res/splitter_handle.png</file>
     </qresource>
 </RCC>

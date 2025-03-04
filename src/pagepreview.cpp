@@ -423,7 +423,7 @@ QGraphicsScene *PagePreview::composeScene(const ComposerInfo& info)
 
     //qreal 
     setItemHeight(logo_item, logo_height);
-    setItemHeight(logo2_item, logo_height);
+    setItemHeight(logo2_item, logo_height*1);
     //fitItemSize(tag_item, tag_rect.size());
     
 
@@ -433,8 +433,8 @@ QGraphicsScene *PagePreview::composeScene(const ComposerInfo& info)
     );
 
     logo2_item->setPos(
-        page_cx + itemWidth(logo_item) * 0.2,
-        logo_section_top + logo_height * 0.06
+        page_cx + itemWidth(logo_item) * 0.5,
+        logo_section_top //- logo_height * 0.1
     );
 
     tag_item->setPos(

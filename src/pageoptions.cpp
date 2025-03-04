@@ -349,7 +349,38 @@ PageOptions::PageOptions(QStatusBar* _statusBar, QWidget *parent)
     // Field toolbars
     field_shape->setCustomWidget(new FieldToolbar());
 
+    ShapeItem warning_icon;
+    warning_icon.load(":/res/warning.svg");
+    warning_icon.setFillStyle(QColor(Qt::red));
+    warning_icon_data = warning_icon.data();
+
     // Provide icon painter callbacks
+    /// Entry selection
+    field_merged_code->setIconPainter([this](SearchableListItem& item, QPainter* painter, QRect& r)
+    {
+        auto entry = item.as<OilTypeEntryPtr>();
+        bool shape_assigned = composerGenerator.containsShapeInfo(entry->cell_shape->txt.c_str());
+        bool shape_color_assigned = composerGenerator.containsShapeColor(entry->cell_shape_color->txt.c_str());
+        bool back_color_assigned = composerGenerator.containsBackColor(entry->cell_back_color->txt.c_str());
+        bool valid = !entry->missingData() && shape_assigned && shape_color_assigned && back_color_assigned;
+
+        if (!valid)
+        {
+            painter->save();
+
+            // Disable anti-aliasing
+            painter->setRenderHint(QPainter::Antialiasing, false);
+            painter->setRenderHint(QPainter::SmoothPixmapTransform, false);
+
+            QSvgRenderer renderer;
+            renderer.load(warning_icon_data);
+            renderer.render(painter, r.adjusted(-4, -4, 4, 4));
+
+            painter->restore();
+        }
+    });
+
+    /// Shape / Colours
     field_shape->setIconPainter([this](SearchableListItem& item, QPainter* painter, QRect& r)
     {
         if (composerGenerator.shapeMap().count(item.txt) == 0)
@@ -909,7 +940,9 @@ void PageOptions::rebuildDatabase()
             {
                 // Is a product defined?
                 CSVCellPtr vendor_cell = row.findByHeader(vendor_header_cell);
-                if (vendor_cell->txt.size())
+                if (vendor_cell->txt.size() &&
+                    !vendor_cell->txt.compare("not defined", true, false) &&
+                    !vendor_cell->txt.compare("undefined", true, false))
                 {
                     // Yes
                     entry->vendor_cells.push_back(vendor_cell);
@@ -1004,7 +1037,8 @@ QByteArray PageOptions::serialize()
     QJsonObject composerInfoGeneratorObj;
     composerGenerator.serialize(composerInfoGeneratorObj);
     jsonObj["composer_info_generator"] = composerInfoGeneratorObj;
-    jsonObj["version"] = 1;
+    jsonObj["assigned_csv"] = csv.getText();
+    jsonObj["version"] = 2;
 
     QJsonDocument jsonDoc(jsonObj);
     return jsonDoc.toJson();
@@ -1020,9 +1054,13 @@ void PageOptions::deserialize(const QByteArray &json)
     QJsonObject jsonObj = jsonDoc.object();
     qDebug() << "Version:" << jsonObj["version"].toInt();
 
+    QString csv_text = jsonObj["assigned_csv"].toString();
+
     QJsonObject composerInfoGeneratorObj = jsonObj["composer_info_generator"].toObject();
     composerGenerator.deserialize(composerInfoGeneratorObj);
 
+    if (csv_text.size())
+        openCSV(csv_text.toStdString().c_str());
 }
 
 SearchableList* PageOptions::addSearchableListRow1(QString field_id, QString field_name)

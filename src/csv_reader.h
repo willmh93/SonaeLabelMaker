@@ -323,6 +323,11 @@ public:
         return data_loaded;
     }
 
+    QString getText()
+    {
+        return stream.str().c_str();
+    }
+
     CSVRow& getRow(int row)
     {
         return table[row];

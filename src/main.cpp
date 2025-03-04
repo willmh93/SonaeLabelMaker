@@ -79,6 +79,7 @@ int main(int argc, char *argv[])
     qDebug() << "Maximized Window Size: " << window.size();
     window.setWindowTitle("Label Maker");
     window.setWindowIcon(QIcon(":/res/sonae_icon.png"));
+    window.setStyleSheet("QLabel { background: red; }");
     window.showMaximized();
     qDebug() << "Maximized Window Size: " << window.size();
 
@@ -87,7 +88,6 @@ int main(int argc, char *argv[])
     //QFile file(":/res/styles.qss");
     //if (file.open(QFile::ReadOnly)) {
     //    QString stylesheet = QLatin1String(file.readAll());
-    //    qApp->setStyleSheet(stylesheet);
     //    
     //}
 

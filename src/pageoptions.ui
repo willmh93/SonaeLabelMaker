@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>712</width>
+    <width>900</width>
     <height>583</height>
    </rect>
   </property>
@@ -165,6 +165,22 @@ QPushButton {
          </widget>
         </item>
         <item>
+         <spacer name="horizontalSpacer_2">
+          <property name="orientation">
+           <enum>Qt::Orientation::Horizontal</enum>
+          </property>
+          <property name="sizeType">
+           <enum>QSizePolicy::Policy::Fixed</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>20</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item>
          <widget class="QPushButton" name="csv_btn">
           <property name="minimumSize">
            <size>
@@ -173,16 +189,16 @@ QPushButton {
            </size>
           </property>
           <property name="text">
-           <string> Select CSV </string>
+           <string> Assign CSV </string>
           </property>
           <property name="icon">
            <iconset resource="../resources.qrc">
-            <normaloff>:/res/icon_find.svg</normaloff>:/res/icon_find.svg</iconset>
+            <normaloff>:/res/paperclip.svg</normaloff>:/res/paperclip.svg</iconset>
           </property>
           <property name="iconSize">
            <size>
-            <width>22</width>
-            <height>22</height>
+            <width>18</width>
+            <height>18</height>
            </size>
           </property>
          </widget>
@@ -210,6 +226,12 @@ QPushButton {
           </property>
           <property name="text">
            <string>Export PDF</string>
+          </property>
+          <property name="iconSize">
+           <size>
+            <width>22</width>
+            <height>22</height>
+           </size>
           </property>
          </widget>
         </item>
