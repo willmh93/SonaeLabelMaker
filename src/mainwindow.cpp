@@ -19,8 +19,9 @@ MainWindow::MainWindow(QWidget *parent)
         QMenuBar* menuBar = new QMenuBar(this);
         setMenuBar(menuBar);
 
-        menuBar->setStyleSheet("\
+        /*menuBar->setStyleSheet("\
             QMenuBar {                            \
+                color: white;                     \
                 background: #1e1e1e;              \
             }                                     \
             QMenu {                               \
@@ -33,7 +34,7 @@ MainWindow::MainWindow(QWidget *parent)
             QMenu::item:selected{                 \
                 background-color: #4e4e4e;        \
             }"
-        );
+        );*/
 
         // Create File menu
         QMenu* fileMenu = menuBar->addMenu("File");
@@ -64,12 +65,12 @@ MainWindow::MainWindow(QWidget *parent)
 
     // Status bar
     QStatusBar* statusBar = new QStatusBar(this);
-    statusBar->setStyleSheet("QStatusBar { color: rgb(255,255,255); background-color: #1e1e1e; }");
+    //statusBar->setStyleSheet("QStatusBar { color: rgb(255,255,255); background-color: #1e1e1e; }");
 
     statusBar->showMessage("No project active");
     setStatusBar(statusBar);
 
-    const QString splitterSheet = "\
+    /*const QString splitterSheet = "\
         QSplitter { background: #1e1e1e; } \
         QSplitter::handle {                       \
             image: url(:/res/splitter_handle.png); \
@@ -79,10 +80,10 @@ MainWindow::MainWindow(QWidget *parent)
         }                                          \
         QSplitter::handle:vertical{              \
             height: 6px;                           \
-        }";
+        }";*/
     //QVBoxLayout *layout = new QVBoxLayout(this);
     QSplitter* mainSplitter = new QSplitter(Qt::Horizontal, this);
-    mainSplitter->setStyleSheet(splitterSheet);
+    //mainSplitter->setStyleSheet(splitterSheet);
     //mainSplitter->setStyleSheet(splitterSheet
         //"QSplitter {\
         //    background-color: #fe1e1e;\
@@ -101,7 +102,7 @@ MainWindow::MainWindow(QWidget *parent)
     pageOptions->setPagePreview(pagePreview);
 
     pageOptions->setAutoFillBackground(true);
-    qDebug() << "PageOptions objectName:" << pageOptions->objectName();
+    //qDebug() << "PageOptions objectName:" << pageOptions->objectName();
 
     //pageOptions->style()->polish()
 
@@ -109,7 +110,7 @@ MainWindow::MainWindow(QWidget *parent)
     mainSplitter->addWidget(pagePreview);
 
     setCentralWidget(mainSplitter);
-    qDebug() << "Widget Effective Style:" << pageOptions->style()->objectName();
+    //qDebug() << "Widget Effective Style:" << pageOptions->style()->objectName();
 
     QTimer timer;
     timer.singleShot(1000, [this]() {

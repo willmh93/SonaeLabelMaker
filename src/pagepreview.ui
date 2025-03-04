@@ -79,7 +79,7 @@
             <enum>Qt::LayoutDirection::LeftToRight</enum>
            </property>
            <property name="styleSheet">
-            <string notr="true">border: none; background: #2d2d2d;</string>
+            <string notr="true"/>
            </property>
            <property name="lineWidth">
             <number>0</number>
@@ -97,7 +97,11 @@
         </attribute>
         <layout class="QVBoxLayout" name="verticalLayout_3">
          <item>
-          <widget class="QTableView" name="csv_table"/>
+          <widget class="QTableView" name="csv_table">
+           <property name="styleSheet">
+            <string notr="true"/>
+           </property>
+          </widget>
          </item>
         </layout>
        </widget>

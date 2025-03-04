@@ -17,9 +17,7 @@
    <string>Batch Export</string>
   </property>
   <property name="styleSheet">
-   <string notr="true">QDialog {
-    background-color: rgb(50, 50, 50);
-}</string>
+   <string notr="true"/>
   </property>
   <property name="modal">
    <bool>true</bool>
@@ -50,7 +48,7 @@
     </rect>
    </property>
    <property name="styleSheet">
-    <string notr="true">background-color: rgb(40, 40, 40);</string>
+    <string notr="true"/>
    </property>
    <property name="selectionMode">
     <enum>QAbstractItemView::SelectionMode::NoSelection</enum>
