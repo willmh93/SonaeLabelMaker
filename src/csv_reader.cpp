@@ -210,6 +210,9 @@ std::vector<CSVCellPtr> CSVReader::findCellsWith(std::string txt, CSVRect r)
 
 CSVHeaderPtr CSVReader::setHeader(CSVCellPtr cell)
 {
+    if (!cell)
+        return nullptr;
+
     CSVHeaderPtr header = nullptr;
 
     // Do we already have this column as a header?

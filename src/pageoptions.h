@@ -56,6 +56,7 @@ class ComposerInfoGenerator
     std::unordered_map<QString, ShapeInfo> shape_map;
     std::unordered_map<QString, QColor> shape_color_map;
     std::unordered_map<QString, QColor> back_color_map;
+    std::unordered_map<QString, QColor> inner_back_color_map;
 
 public:
 
@@ -79,6 +80,11 @@ public:
         return back_color_map;
     }
 
+    const std::unordered_map<QString, QColor> innerBackColorMap() const
+    {
+        return inner_back_color_map;
+    }
+
     void setShapeInfo(QString desc, ShapeInfo shape_info)
     {
         shape_map[desc] = shape_info;
@@ -93,6 +99,11 @@ public:
     void setBackColor(QString desc, QColor color)
     {
         back_color_map[desc] = color;
+    }
+
+    void setInnerBackColor(QString desc, QColor color)
+    {
+        inner_back_color_map[desc] = color;
     }
 
     bool containsShapeInfo(QString desc)
@@ -134,9 +145,17 @@ public:
             return QColor(0, 0, 0, 0);
     }
 
+    QColor getInnerBackColor(QString desc)
+    {
+        if (inner_back_color_map.count(desc))
+            return inner_back_color_map[desc];
+        else
+            return QColor(0, 0, 0, 0);
+    }
+
     void serialize(QJsonObject &info) const
     {
-        QJsonObject map_shape_obj, map_shape_color_obj, map_back_color_obj;
+        QJsonObject map_shape_obj, map_shape_color_obj, map_back_color_obj, map_inner_back_color_obj;
 
         for (const auto& [key, value] : shape_map)
         {
@@ -151,10 +170,14 @@ public:
         for (const auto& [key, value] : back_color_map)
             map_back_color_obj[key] = value.name(QColor::HexArgb);
 
+        for (const auto& [key, value] : inner_back_color_map)
+            map_inner_back_color_obj[key] = value.name(QColor::HexArgb);
 
-        info["back_color"] = map_back_color_obj;
-        info["shape_color"] = map_shape_color_obj;
+
         info["shape"] = map_shape_obj;
+        info["shape_color"] = map_shape_color_obj;
+        info["back_color"] = map_back_color_obj;
+        info["inner_back_color"] = map_inner_back_color_obj;
     }
 
     void deserialize(const QJsonObject& info)
@@ -162,6 +185,7 @@ public:
         QJsonObject map_shape_obj = info["shape"].toObject();
         QJsonObject map_shape_color_obj = info["shape_color"].toObject();
         QJsonObject map_back_color_obj = info["back_color"].toObject();
+        QJsonObject map_inner_back_color_obj = info["inner_back_color"].toObject();
 
         qDebug() << map_shape_obj;
 
@@ -177,6 +201,9 @@ public:
 
         for (auto it = map_back_color_obj.begin(); it != map_back_color_obj.end(); ++it)
             setBackColor(it.key(), QColor(it->toString()));
+
+        for (auto it = map_inner_back_color_obj.begin(); it != map_inner_back_color_obj.end(); ++it)
+            setInnerBackColor(it.key(), QColor(it->toString()));
     }
 };
 
@@ -199,6 +226,7 @@ struct OilTypeEntry
     CSVCellPtr cell_shape;
     CSVCellPtr cell_shape_color;
     CSVCellPtr cell_back_color;
+    CSVCellPtr cell_inner_back_color;
 
     std::vector<CSVCellPtr> vendor_cells;
 
@@ -210,7 +238,8 @@ struct OilTypeEntry
         if (cell_generic_code->txt.size() == 0) return true;
         if (cell_shape->txt.size() == 0) return true;
         if (cell_shape_color->txt.size() == 0) return true;
-        if (cell_shape_color->txt.size() == 0) return true;
+        if (cell_back_color->txt.size() == 0) return true;
+        //if (cell_inner_back_color->txt.size() == 0) return true;
         return false;
 
     }
@@ -276,6 +305,7 @@ class PageOptions : public QWidget
     SearchableList* field_shape;
     SearchableList* field_shape_col;
     SearchableList* field_back_col;
+    SearchableList* field_inner_back_col;
     
     SearchableList* field_products;
 
@@ -340,16 +370,20 @@ public:
         return txt.c_str();
     };
 
-    SearchableList* addSearchableListRow1(QString field_id, QString field_name);
-    SearchableList* addSearchableListRow2(QString field_id, QString field_name);
+    //SearchableList* addSearchableListRow1(QString field_id, QString field_name);
+    //SearchableList* addSearchableListRow2(QString field_id, QString field_name);
+    
+    //SearchableList* initSearchableList(QString field_id, QString field_name);
+    
+    
     //void populateOilTypeFields();
 
     void updateStatusBar();
 
-    void openCSV(const char *text);
+    void readCSV(const char *text);
 
     void rebuildDatabaseAndPopulateUI();
-    void rebuildDatabase();
+    bool rebuildDatabase();
     void repopulateLists();
 
     QByteArray serialize();
@@ -377,6 +411,7 @@ private:
         OilTypeEntryPtr entry,
         bool allow_errors,
         std::function<void(QGraphicsScene*, ComposerResultInt)> callback=nullptr);
+    void updateGenericCodeDescriptionTable();
 
 private:
     Ui::PageOptions *ui;

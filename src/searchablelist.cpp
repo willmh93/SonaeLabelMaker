@@ -6,16 +6,9 @@
 #include <QMouseEvent>
 
 
-SearchableList::SearchableList(
-    const std::string _field_id,
-    const QString name, 
-    QWidget *parent)
-    : QWidget(parent)
-    , ui(new Ui::SearchableList)
+SearchableList::SearchableList(QWidget *parent) : QWidget(parent), ui(new Ui::SearchableList)
 {
     ui->setupUi(this);
-    field_id = _field_id;
-    setName(name);
     
     if (other_lists == nullptr)
         ui->combo->hide();
@@ -47,8 +40,6 @@ SearchableList::SearchableList(
                 if (list != this)
                     list->_setRadioChecked(false, true);
             }
-
-            
             _setRadioChecked(true);
         }
         if (on_radio_toggle)
@@ -70,6 +61,13 @@ SearchableList::SearchableList(
 SearchableList::~SearchableList()
 {
     delete ui;
+}
+
+SearchableList *SearchableList::init(const std::string _field_id, const QString name)
+{
+    field_id = _field_id;
+    setName(name);
+    return this;
 }
 
 void SearchableList::setName(const QString &_name)

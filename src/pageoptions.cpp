@@ -314,22 +314,25 @@ PageOptions::PageOptions(QStatusBar* _statusBar, QWidget *parent)
     svg_picker = new FileManager(this);
     pdf_exporter = new FileManager(this);
 
-    field_merged_code = addSearchableListRow1("mat_gen_code", "Material / Generic Code");
-    field_products    = addSearchableListRow1("products", "Available Products");
+    field_merged_code = ui->merged_code_list->init("mat_gen_code", "Material / Generic Code");
+    field_products    = ui->product_list->init("products", "Available Products");
 
-    field_shape       = addSearchableListRow2("shape", "Shape");
-    field_shape_col   = addSearchableListRow2("shape_col", "Shape Color");
-    field_back_col    = addSearchableListRow2("back_col", "Background Color");
+    field_shape          = ui->shape_list->init("shape", "Shape");
+    field_shape_col      = ui->shape_color_list->init("shape_col", "Shape Colour");
+    field_back_col       = ui->back_color_list->init("back_col", "Background Colour");
+    field_inner_back_col = ui->inner_back_color_list->init("inner_back_col", "Inner-Background Colour");
 
     // Bigger rows for icons
     field_shape->setRowHeight(24);
     field_shape_col->setRowHeight(24);
     field_back_col->setRowHeight(24);
+    field_inner_back_col->setRowHeight(24);
     
     // Set which fields are selectable
     field_shape->setSelectable(false);
     field_shape_col->setSelectable(false);
     field_back_col->setSelectable(false);
+    field_inner_back_col->setSelectable(false);
 
     //field_merged_code->setSelectable(false);
 
@@ -337,6 +340,7 @@ PageOptions::PageOptions(QStatusBar* _statusBar, QWidget *parent)
     field_shape->setFilterable(false);
     field_shape_col->setFilterable(false);
     field_back_col->setFilterable(false);
+    field_inner_back_col->setFilterable(false);
 
     // Prepare radio button logic
     radio_lists = std::make_shared<std::vector<SearchableList*>>();
@@ -443,6 +447,24 @@ PageOptions::PageOptions(QStatusBar* _statusBar, QWidget *parent)
         }
     });
 
+    field_inner_back_col->setIconPainter([this](SearchableListItem& item, QPainter* painter, QRect& r)
+    {
+        if (composerGenerator.innerBackColorMap().count(item.txt) == 0)
+        {
+            QPen pen(Qt::red, 2);
+            painter->setPen(pen);
+            painter->drawLine(r.topLeft(), r.bottomRight());
+            painter->drawLine(r.topRight(), r.bottomLeft());
+        }
+        else
+        {
+            QColor color = composerGenerator.getInnerBackColor(item.txt);
+            QBrush brush(color);
+            painter->fillRect(r, brush);
+        }
+    });
+
+
     // Define callbacks
     auto toggleShowAllProducts = [this](bool)
     {
@@ -489,6 +511,18 @@ PageOptions::PageOptions(QStatusBar* _statusBar, QWidget *parent)
         color_picker->open();
     };
 
+    auto changeInnerBackColorItem = [this](SearchableListItem& item)
+    {
+        color_picker = new QColorDialog(this);
+        color_picker->setCurrentColor(composerGenerator.getInnerBackColor(item.txt));
+        connect(color_picker, &QColorDialog::colorSelected, this, [this, item](const QColor& color) {
+            composerGenerator.setInnerBackColor(item.txt, color);
+            field_inner_back_col->refresh();
+            recomposePage(getSelectedProduct(), selected_entry, true);
+        });
+        color_picker->open();
+    };
+
     // Hook up callbacks for detecting Radio toggle change
     field_merged_code->onRadioToggled(toggleShowAllProducts);
     field_products->onRadioToggled(toggleShowAllProducts);
@@ -500,6 +534,8 @@ PageOptions::PageOptions(QStatusBar* _statusBar, QWidget *parent)
     field_shape_col->onDoubleClickItem(changeShapeColorItem);
     field_back_col->onClickIcon(changeBackColorItem);
     field_back_col->onDoubleClickItem(changeBackColorItem);
+    field_inner_back_col->onClickIcon(changeInnerBackColorItem);
+    field_inner_back_col->onDoubleClickItem(changeInnerBackColorItem);
 
     // Detect [material/generic] list selection change
     connect(field_merged_code, &SearchableList::onChangedSelected, this, [this](SearchableListItem& item)
@@ -525,8 +561,10 @@ PageOptions::PageOptions(QStatusBar* _statusBar, QWidget *parent)
         field_shape->setCurrentItem(nullableFieldPropTxt(selected_entry->cell_shape->txt));
         field_shape_col->setCurrentItem(nullableFieldPropTxt(selected_entry->cell_shape_color->txt));
         field_back_col->setCurrentItem(nullableFieldPropTxt(selected_entry->cell_back_color->txt));
+        field_inner_back_col->setCurrentItem(nullableFieldPropTxt(selected_entry->cell_inner_back_color->txt));
 
         recomposePage(getSelectedProduct(), selected_entry, true);
+        updateGenericCodeDescriptionTable();
     });
 
     // Detect product list selection change
@@ -542,8 +580,10 @@ PageOptions::PageOptions(QStatusBar* _statusBar, QWidget *parent)
         field_shape->setCurrentItem(nullableFieldPropTxt(selected_entry->cell_shape->txt));
         field_shape_col->setCurrentItem(nullableFieldPropTxt(selected_entry->cell_shape_color->txt));
         field_back_col->setCurrentItem(nullableFieldPropTxt(selected_entry->cell_back_color->txt));
+        field_inner_back_col->setCurrentItem(nullableFieldPropTxt(selected_entry->cell_inner_back_color->txt));
 
         recomposePage(getSelectedProduct(), selected_entry, true);
+        updateGenericCodeDescriptionTable();
     });
 
     // Load Project button
@@ -578,7 +618,7 @@ PageOptions::PageOptions(QStatusBar* _statusBar, QWidget *parent)
             const QString& filename,
             const QByteArray& data)
         {
-            openCSV(data.toStdString().c_str());
+            readCSV(data.toStdString().c_str());
             rebuildDatabaseAndPopulateUI();
 
             csv_filename = filename;
@@ -831,6 +871,7 @@ ComposerResultInt PageOptions::recomposePage(
         composeInfo.shape = composerGenerator.getShapeInfo(entry->cell_shape->txt.c_str());
         composeInfo.shape_color = composerGenerator.getShapeColor(entry->cell_shape_color->txt.c_str());
         composeInfo.tag_background_color = composerGenerator.getBackColor(entry->cell_back_color->txt.c_str());
+        composeInfo.tag_inner_background_color = composerGenerator.getInnerBackColor(entry->cell_inner_back_color->txt.c_str());
 
         composeInfo.material_code = entry->cell_material_code->txt.c_str();
         composeInfo.generic_code = entry->cell_generic_code->txt.c_str();
@@ -872,25 +913,35 @@ ComposerResultInt PageOptions::recomposePage(
     return ret;
 }
 
+void PageOptions::updateGenericCodeDescriptionTable()
+{
+    OilTypeEntryPtr entry = selected_entry;
+    QString generic_code = entry->cell_generic_code->txt.c_str();
+    QStringList parts = generic_code.split('-');
+
+    for (int i=0; i<parts.size(); i)
+}
+
 void PageOptions::updateStatusBar()
 {
     statusBar->showMessage("Project:   " + project_filename + "       CSV:   " + csv_filename);
 }
 
-void PageOptions::openCSV(const char* text)
+void PageOptions::readCSV(const char* text)
 {
     csv.clear();
     csv.open(text);
-    rebuildDatabaseAndPopulateUI();
 }
 
 void PageOptions::rebuildDatabaseAndPopulateUI()
 {
-    rebuildDatabase();
+    if (!rebuildDatabase())
+        QMessageBox::critical(this, "Error", "Unable to parse CSV headers. Please assign a new valid CSV.");
+    
     repopulateLists();
 }
 
-void PageOptions::rebuildDatabase()
+bool PageOptions::rebuildDatabase()
 {
     // Clear maps
     merged_code_entries.clear();
@@ -910,22 +961,46 @@ void PageOptions::rebuildDatabase()
                 CSVRect::END, header_row
             );
 
-            csv.setHeader(csv.findCell("SA_Material_Code", headers_r))->setCustomId("material_code");
-            csv.setHeader(csv.findCell("Generic_Code", headers_r))->setCustomId("generic_code");
+            // Material header
+            auto material_code_header_cell = csv.findCell("SA_Material_Code", headers_r);
+            if (!material_code_header_cell) return false;
+            csv.setHeader(material_code_header_cell)->setCustomId("material_code");
+
+            // Generic Code
+            auto generic_code_header_cell = csv.findCell("Generic_Code", headers_r);
+            if (!generic_code_header_cell) return false;
+            csv.setHeader(generic_code_header_cell)->setCustomId("generic_code");
 
             // Find all manufacturer headers
             auto vendor_header_cells = csv.findCellsFuzzy("Vendor", headers_r, true, false);
             for (size_t i = 0; i < vendor_header_cells.size(); i++)
             {
+                auto header_cell = csv.setHeader(vendor_header_cells[i]);
+                if (!header_cell) return false;
                 vendor_headers.push_back(
-                    csv.setHeader(vendor_header_cells[i])
-                      ->setCustomId("vendor_" + QString::number(i).toStdString())
+                    header_cell->setCustomId("vendor_" + QString::number(i).toStdString())
                 );
             }
 
-            csv.setHeader(csv.findCell("Shape", headers_r))->setCustomId("shape");
-            csv.setHeader(csv.findCell("ShapeColour", headers_r))->setCustomId("shape_color");
-            csv.setHeader(csv.findCell("BackColour", headers_r))->setCustomId("back_color");
+            // Shape
+            auto shape_header_cell = csv.findCell("Shape", headers_r);
+            if (!shape_header_cell) return false;
+            csv.setHeader(shape_header_cell)->setCustomId("shape");
+
+            // Shape Color
+            auto shape_color_header_cell = csv.findCell("ShapeColour", headers_r);
+            if (!shape_color_header_cell) return false;
+            csv.setHeader(shape_color_header_cell)->setCustomId("shape_color");
+
+            // Back Color
+            auto back_color_header_cell = csv.findCell("BackColour", headers_r);
+            if (!back_color_header_cell) return false;
+            csv.setHeader(back_color_header_cell)->setCustomId("back_color");
+
+            // Inner Back Color
+            auto inner_back_color_header_cell = csv.findCell("InnerBackColour", headers_r);
+            if (!inner_back_color_header_cell) return false;
+            csv.setHeader(inner_back_color_header_cell)->setCustomId("inner_back_color");
         }
 
         csv.readData();
@@ -941,6 +1016,7 @@ void PageOptions::rebuildDatabase()
             entry->cell_shape = row.findByHeaderCustomID("shape");
             entry->cell_shape_color = row.findByHeaderCustomID("shape_color");
             entry->cell_back_color = row.findByHeaderCustomID("back_color");
+            entry->cell_inner_back_color = row.findByHeaderCustomID("inner_back_color");
 
             // Skipping entries with missing generic code
             if (entry->cell_generic_code->txt.size() == 0)
@@ -981,6 +1057,8 @@ void PageOptions::rebuildDatabase()
     {
         return a.first < b.first;
     });
+
+    return true;
 }
 
 void PageOptions::repopulateLists()
@@ -991,11 +1069,13 @@ void PageOptions::repopulateLists()
     field_shape->clear();
     field_shape_col->clear();
     field_back_col->clear();
+    field_inner_back_col->clear();
 
     // Add placeholder <none> for missing entry fields
     field_shape->addUniqueListItem("<none>");
     field_shape_col->addUniqueListItem("<none>");
     field_back_col->addUniqueListItem("<none>");
+    field_inner_back_col->addUniqueListItem("<none>");
 
     // Populate lists with database values
     for (const auto& [merged_code, entry] : merged_code_entries)
@@ -1014,6 +1094,10 @@ void PageOptions::repopulateLists()
         // Back Color
         QString back_col_txt = nullableFieldPropTxt(entry->cell_back_color->txt);
         field_back_col->addUniqueListItem(back_col_txt);
+
+        // Inner-Back Color
+        QString inner_back_col_txt = nullableFieldPropTxt(entry->cell_inner_back_color->txt);
+        field_inner_back_col->addUniqueListItem(inner_back_col_txt);
     }
 
     // Show all vendors
@@ -1036,6 +1120,10 @@ void PageOptions::repopulateLists()
         // Back Color
         for (const auto& [key, v] : composerGenerator.backColorMap())
             field_back_col->addUniqueListItem(key);
+
+        // Inner-Back Color
+        for (const auto& [key, v] : composerGenerator.innerBackColorMap())
+            field_inner_back_col->addUniqueListItem(key);
     }
 
     // Repopulate table
@@ -1118,6 +1206,13 @@ void PageOptions::repopulateLists()
             QString back_col_txt = entry->cell_back_color->txt.c_str();
             rowItems.append(new QStandardItem(back_col_txt));
 
+            // Inner Back Color
+            if (col >= headers.size()) headers.resize(col + 1);
+            headers[col++] = entry->cell_inner_back_color->header->subheaders.back()->txt.c_str();
+
+            QString inner_back_col_txt = entry->cell_inner_back_color->txt.c_str();
+            rowItems.append(new QStandardItem(inner_back_col_txt));
+
             for (auto vendor_cell : entry->vendor_cells)
             {
                 if (col >= headers.size()) headers.resize(col + 1);
@@ -1166,10 +1261,13 @@ void PageOptions::deserialize(const QByteArray &json)
     composerGenerator.deserialize(composerInfoGeneratorObj);
 
     if (csv_text.size())
-        openCSV(csv_text.toStdString().c_str());
+    {
+        readCSV(csv_text.toStdString().c_str());
+        rebuildDatabaseAndPopulateUI();
+    }
 }
 
-SearchableList* PageOptions::addSearchableListRow1(QString field_id, QString field_name)
+/*SearchableList* PageOptions::addSearchableListRow1(QString field_id, QString field_name)
 {
     SearchableList* field_widget = new SearchableList(field_id.toStdString(), field_name);
     
@@ -1183,4 +1281,14 @@ SearchableList* PageOptions::addSearchableListRow2(QString field_id, QString fie
 
     ui->product_lists->addWidget(field_widget);
     return field_widget;
-}
+}*/
+
+/*SearchableList* PageOptions::initSearchableList(QString field_id, QString field_name)
+{
+    SearchableList* field_widget = ui->
+
+    ui->product_lists->addWidget(field_widget);
+    return field_widget;
+}*/
+
+

@@ -42,10 +42,10 @@ int main(int argc, char *argv[])
     a.setPalette(palette);*/
 
     QPalette darkPalette;
-    darkPalette.setColor(QPalette::Window, QColor(45, 45, 45));
+    darkPalette.setColor(QPalette::Window, QColor(50, 50, 50));
     darkPalette.setColor(QPalette::WindowText, Qt::white);
     darkPalette.setColor(QPalette::Base, QColor(40, 40, 40));
-    darkPalette.setColor(QPalette::AlternateBase, QColor(53, 53, 53));
+    darkPalette.setColor(QPalette::AlternateBase, QColor(60, 60, 60));
     darkPalette.setColor(QPalette::ToolTipBase, Qt::white);
     darkPalette.setColor(QPalette::ToolTipText, Qt::white);
     darkPalette.setColor(QPalette::Text, Qt::white);

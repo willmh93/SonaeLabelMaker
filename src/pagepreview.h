@@ -851,6 +851,7 @@ struct ComposerInfo
     ShapeInfo shape;
     QColor shape_color;
     QColor tag_background_color;
+    QColor tag_inner_background_color;
 
     QString generic_code;
     QString material_code;

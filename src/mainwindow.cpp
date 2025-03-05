@@ -36,6 +36,13 @@ MainWindow::MainWindow(QWidget *parent)
             }"
         );*/
 
+        menuBar->setStyleSheet("\
+            QMenuBar {                            \
+                color: white;                     \
+                background: #252525;              \
+            }                                     \
+        ");
+
         // Create File menu
         QMenu* fileMenu = menuBar->addMenu("File");
 
@@ -65,7 +72,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     // Status bar
     QStatusBar* statusBar = new QStatusBar(this);
-    //statusBar->setStyleSheet("QStatusBar { color: rgb(255,255,255); background-color: #1e1e1e; }");
+    statusBar->setStyleSheet("QStatusBar { background-color: #252525; }");
 
     statusBar->showMessage("No project active");
     setStatusBar(statusBar);

@@ -292,12 +292,11 @@ signals:
 
 public:
 
-    explicit SearchableList(
-        const std::string field_id,
-        const QString name,
-        QWidget* parent = nullptr);
+    explicit SearchableList(QWidget* parent = nullptr);
 
     ~SearchableList();
+
+    SearchableList* init(const std::string field_id, const QString name);
 
     void setName(const QString& name);
     const std::string &fieldId() { return field_id; }

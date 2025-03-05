@@ -94,6 +94,24 @@ void centerItem(QGraphicsItem* item, const QRectF& r)
     item->setY(cen.y() - (item->boundingRect().height() * item->scale()) / 2);
 }
 
+QSizeF getScaledSize(QGraphicsItem* item)
+{
+    return QSizeF(
+        item->boundingRect().width() * item->scale(),
+        item->boundingRect().height() * item->scale()
+    );
+}
+
+QRectF getScaledRect(QGraphicsItem* item)
+{
+    return QRectF(
+        item->x(),
+        item->y(),
+        item->boundingRect().width() * item->scale(),
+        item->boundingRect().height() * item->scale()
+    );
+}
+
 void adjustTextToFit(
     QGraphicsTextItem* item, 
     const QRectF& rect, 
@@ -220,6 +238,7 @@ PagePreview::PagePreview(QWidget *parent)
     ComposerInfo info;
     info.shape_color = "#ffffff";
     info.tag_background_color = "#ffffff";
+    info.tag_inner_background_color = info.tag_background_color;
     composeScene(info);
     //composed.save("label.png");
 
@@ -243,15 +262,15 @@ PagePreview::~PagePreview()
 
 QImage PagePreview::composeTag(const ComposerInfo& info, QSize size)
 {
-    QRect r(0, 0, size.width(), size.height());
-
+    QRectF rect(0, 0, size.width(), size.height());
+    
     QGraphicsScene sub_scene;
-    sub_scene.setSceneRect(r);
+    sub_scene.setSceneRect(rect);
 
     // Draw tag
     //{
         // Create Coloured Tag Box Area
-        QGraphicsRectItem *box = sub_scene.addRect(r, QPen(Qt::NoPen), QBrush(info.tag_background_color));
+        QGraphicsRectItem *box = sub_scene.addRect(rect, QPen(Qt::NoPen), QBrush(info.tag_background_color));
         
         // Load Shape Item
         //shape_piximap.load("C:/Git/C++/Projects/SonaeLabelMaker/shapes/test_svg.svg");
@@ -277,9 +296,25 @@ QImage PagePreview::composeTag(const ComposerInfo& info, QSize size)
         shape_item->setScale(1);
 
         // Fit Shape in Tag and Center
-        QRectF shape_body_rect = r.adjusted(shape_padding, shape_padding, -shape_padding, -shape_padding);
+        QRectF shape_body_rect = rect.adjusted(shape_padding, shape_padding, -shape_padding, -shape_padding);
         fitItemSize(shape_item, shape_body_rect.size());
-        centerItem(shape_item, QRectF(0, 0, size.width(), size.height()));
+        centerItem(shape_item, rect);
+
+        qreal inner_box_padding = rect.width() * 0.03;
+        QRectF inner_rect = getScaledRect(shape_item).adjusted(
+            -inner_box_padding, -inner_box_padding,
+            inner_box_padding, inner_box_padding
+        );
+        QGraphicsRectItem* inner_box = sub_scene.addRect(inner_rect, QPen(Qt::NoPen), QBrush(info.tag_inner_background_color));
+        //inner_box->setPos()
+
+        inner_box->setParentItem(box);
+        shape_item->setParentItem(inner_box);
+
+        //box->setZValue(1);
+        //inner_box->setZValue(2);
+        //shape_item->setZValue(3);
+
     //}
 
     // Render

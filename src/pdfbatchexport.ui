@@ -48,7 +48,7 @@
     </rect>
    </property>
    <property name="styleSheet">
-    <string notr="true"/>
+    <string notr="true">background-color: #252525</string>
    </property>
    <property name="selectionMode">
     <enum>QAbstractItemView::SelectionMode::NoSelection</enum>
