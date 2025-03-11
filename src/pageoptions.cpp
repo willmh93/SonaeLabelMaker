@@ -1,4 +1,4 @@
-#include <QPushButton>
+﻿#include <QPushButton>
 #include <QSvgRenderer>
 #include <QMessageBox>
 #include <QTableView>
@@ -89,7 +89,7 @@ void PdfSceneWriter::addPage(QGraphicsScene* scene)
         firstPage = false;
     }
 
-    
+
     QRectF print_rect = pdfWriter->pageLayout().paintRectPixels(pdfWriter->resolution());
     QRectF src_rect = scene->sceneRect().adjusted(
         src_margin - print_rect.left(),
@@ -252,17 +252,17 @@ struct TarHeader {
 };
 
 // Converts a number to an octal string (for TAR headers)
-void tarSetOctal(char *field, size_t size, qint64 value) {
+void tarSetOctal(char* field, size_t size, qint64 value) {
     snprintf(field, size, "%*llo", static_cast<int>(size - 1), value);
 }
 
 // Creates a TAR archive from multiple QByteArrays
-QByteArray createTarArchive(const QVector<QPair<QString, QByteArray>> &files) {
+QByteArray createTarArchive(const QVector<QPair<QString, QByteArray>>& files) {
     QByteArray tarData;
 
-    for (const auto &file : files) {
-        const QString &fileName = file.first;
-        const QByteArray &fileContent = file.second;
+    for (const auto& file : files) {
+        const QString& fileName = file.first;
+        const QByteArray& fileContent = file.second;
 
         // Create TAR header
         TarHeader header;
@@ -279,13 +279,13 @@ QByteArray createTarArchive(const QVector<QPair<QString, QByteArray>> &files) {
 
         // Calculate checksum
         unsigned int checksum = 0;
-        const unsigned char *rawHeader = reinterpret_cast<const unsigned char *>(&header);
+        const unsigned char* rawHeader = reinterpret_cast<const unsigned char*>(&header);
         for (size_t i = 0; i < sizeof(TarHeader); i++)
             checksum += rawHeader[i];
         tarSetOctal(header.chksum, sizeof(header.chksum), checksum);
 
         // Append header to TAR archive
-        tarData.append(reinterpret_cast<const char *>(&header), sizeof(TarHeader));
+        tarData.append(reinterpret_cast<const char*>(&header), sizeof(TarHeader));
 
         // Append file data
         tarData.append(fileContent);
@@ -302,7 +302,7 @@ QByteArray createTarArchive(const QVector<QPair<QString, QByteArray>> &files) {
     return tarData;
 }
 
-PageOptions::PageOptions(QStatusBar* _statusBar, QWidget *parent)
+PageOptions::PageOptions(QStatusBar* _statusBar, QWidget* parent)
     : QWidget(parent)
     , ui(new Ui::PageOptions)
 {
@@ -315,11 +315,11 @@ PageOptions::PageOptions(QStatusBar* _statusBar, QWidget *parent)
     pdf_exporter = new FileManager(this);
 
     field_merged_code = ui->merged_code_list->init("mat_gen_code", "Material / Generic Code");
-    field_products    = ui->product_list->init("products", "Available Products");
+    field_products = ui->product_list->init("products", "Available Products");
 
-    field_shape          = ui->shape_list->init("shape", "Shape");
-    field_shape_col      = ui->shape_color_list->init("shape_col", "Shape Colour");
-    field_back_col       = ui->back_color_list->init("back_col", "Background Colour");
+    field_shape = ui->shape_list->init("shape", "Shape");
+    field_shape_col = ui->shape_color_list->init("shape_col", "Shape Colour");
+    field_back_col = ui->back_color_list->init("back_col", "Background Colour");
     field_inner_back_col = ui->inner_back_color_list->init("inner_back_col", "Inner-Background Colour");
 
     // Bigger rows for icons
@@ -327,7 +327,7 @@ PageOptions::PageOptions(QStatusBar* _statusBar, QWidget *parent)
     field_shape_col->setRowHeight(24);
     field_back_col->setRowHeight(24);
     field_inner_back_col->setRowHeight(24);
-    
+
     // Set which fields are selectable
     field_shape->setSelectable(false);
     field_shape_col->setSelectable(false);
@@ -558,13 +558,7 @@ PageOptions::PageOptions(QStatusBar* _statusBar, QWidget *parent)
             field_products->setCurrentItem(selected_entry->vendor_cells[0]->txt.c_str());
         }
 
-        field_shape->setCurrentItem(nullableFieldPropTxt(selected_entry->cell_shape->txt));
-        field_shape_col->setCurrentItem(nullableFieldPropTxt(selected_entry->cell_shape_color->txt));
-        field_back_col->setCurrentItem(nullableFieldPropTxt(selected_entry->cell_back_color->txt));
-        field_inner_back_col->setCurrentItem(nullableFieldPropTxt(selected_entry->cell_inner_back_color->txt));
-
-        recomposePage(getSelectedProduct(), selected_entry, true);
-        updateGenericCodeDescriptionTable();
+        onChangeSelectedMaterialEntry();
     });
 
     // Detect product list selection change
@@ -577,13 +571,7 @@ PageOptions::PageOptions(QStatusBar* _statusBar, QWidget *parent)
             field_merged_code->setCurrentItem(selected_entry->mergedCode().c_str());
         }
 
-        field_shape->setCurrentItem(nullableFieldPropTxt(selected_entry->cell_shape->txt));
-        field_shape_col->setCurrentItem(nullableFieldPropTxt(selected_entry->cell_shape_color->txt));
-        field_back_col->setCurrentItem(nullableFieldPropTxt(selected_entry->cell_back_color->txt));
-        field_inner_back_col->setCurrentItem(nullableFieldPropTxt(selected_entry->cell_inner_back_color->txt));
-
-        recomposePage(getSelectedProduct(), selected_entry, true);
-        updateGenericCodeDescriptionTable();
+        onChangeSelectedMaterialEntry();
     });
 
     // Load Project button
@@ -738,7 +726,179 @@ PageOptions::PageOptions(QStatusBar* _statusBar, QWidget *parent)
     composerGenerator.setBackColor("White-Barium Complex", "#ffffff");
     composerGenerator.setBackColor("Gray-Aluminium Complex", "#7f7f7f");
     composerGenerator.setBackColor("Purple-Polymer", "#ff00ff");*/
-    
+
+    {
+        // Lubricant Type
+        setTokenIndexName(0, "Lubricant Type");
+        setTokenDescription(0, "GB", "Bearing Grease");
+        setTokenDescription(0, "GB/GC", "Bearing Grease High Performance"); //setTokenDescription(0, "GC", "Chain Grease");
+        setTokenDescription(0, "GG", "Grease Food Grade");
+        setTokenDescription(0, "GP", "Paste Grease");
+        setTokenDescription(0, "OC", "Compressor Oil");
+        setTokenDescription(0, "OE", "Electrical Oil");
+        setTokenDescription(0, "OG", "Gear Oil");
+        setTokenDescription(0, "OH", "Hydraulic Oil");
+        setTokenDescription(0, "OM", "Motor / Engine Oil"); /// CLASH. Resolve by some threadhold?  SAE[0W-50W] = Engine. SAE[80W-140] 
+        setTokenDescription(0, "OO", "Other Oil");
+        setTokenDescription(0, "OT", "Thermal Oil");
+
+        // Viscosity / NLGI type
+        setTokenIndexName(1, "VISC / NLGI");
+        //setTokenDescription(1, "10",    "VG10");  /// e.g. OE-10-M     = "Electrical Insulating Oil"
+        setTokenDescription(1, "32", "ISO (VG) 32 Light hydraulic oil");  /// e.g. OT-32-M     = "Heat Transfer Oil, VG32, Mineral"
+        setTokenDescription(1, "46", "ISO (VG) 46 Medium hydraulic & compressor oil");  /// e.g. OG-100-M-EP = "Compressor Oil, VG46, Mineral, AW,  ISO 6743/3 - DAA and DAB for reciprocating air compressors, DAG for rotary air compressors"
+        setTokenDescription(1, "50", "ISO (VG) 50 Similar to VG 46 but slightly thicker");
+        setTokenDescription(1, "68", "ISO (VG) 68 Heavier hydraulic & gear oil");
+        setTokenDescription(1, "100", "ISO (VG) 100 Heavy-duty gear & bearing oil");  //CLASH WITH    e.g. "Gear Oil, VG100, Mineral, EP, DIN 51517-3 for CLP type gear oils"
+        setTokenDescription(1, "150", "ISO (VG) 150 Industrial gear oil");
+        setTokenDescription(1, "220", "ISO (VG) 220 Heavy industrial gear oil");
+        setTokenDescription(1, "260", "ISO (VG) 260 Similar to VG 280"); // Mistake? Should be VG260?    e.g. "Chain Oil, VG150, Synthetic (POE), AW, suitable for high temperature"
+        setTokenDescription(1, "280", "ISO (VG) Higher viscosity industrial gear oil"); // Mistake? Should be VG260?    e.g. "Chain Oil, VG150, Synthetic (POE), AW, suitable for high temperature"
+        setTokenDescription(1, "320", "ISO (VG) 320 High-viscosity gear oil");
+        setTokenDescription(1, "400", "ISO (VG) 400 High-load gear oil");
+        setTokenDescription(1, "460", "ISO (VG) 460 Extra heavy-duty gear oil");
+        setTokenDescription(1, "680", "ISO (VG) 680 Extra high viscosity oil");
+        setTokenDescription(1, "1000", "ISO (VG) 1000 Extreme conditions, open gears");
+        //setTokenDescription(1, "1500", "VG1500");
+
+        setTokenDescription(1, "5W-30",     "SAE Gear Oil Viscosity 5W Winter-grade oil for cold starts");
+        setTokenDescription(1, "10W-40",    "SAE Gear Oil Viscosity 10W Light winter-grade oil");
+        setTokenDescription(1, "15W-40",    "SAE Gear Oil Viscosity 15W Moderate winter-grade oil");
+        setTokenDescription(1, "20W-40",    "SAE Gear Oil Viscosity 20W Heavier winter-grade oil");
+        setTokenDescription(1, "30",        "SAE Gear Oil Viscosity 30 Medium-weight engine oil");
+        //setTokenDescription(1, "40",      "SAE 40"); // MISSING FROM GLOSSARY
+        setTokenDescription(1, "80W-90",    "UNDEFINED");
+        setTokenDescription(1, "80W",       "SAE Gear Oil Viscosity 80W Light gear oil");
+        setTokenDescription(1, "85W-140",   "SAE Gear Oil Viscosity 85W Medium gear oil");
+        setTokenDescription(1, "90",        "SAE Gear Oil Viscosity 90 Standard gear oil");
+        
+        setTokenDescription(1, "ATF32", "Automatic Transmission Fluid (ATF) ATF 32 Transmission fluid for automatics"); 
+
+        setTokenDescription(1, "000",   "NLGI Grease Grade 0 Very soft, semi-fluid grease");
+        setTokenDescription(1, "00",    "NLGI Grease Grade 0 Soft, nearly fluid grease");
+        setTokenDescription(1, "0",     "NLGI Grease Grade 0 Soft grease");
+        setTokenDescription(1, "1",     "NLGI Grease Grade 1 Semi-soft grease");
+        setTokenDescription(1, "1.5",   "NLGI Grease Grade 1.5 Between NLGI 1 and 2");
+        setTokenDescription(1, "2",     "NLGI Grease Grade 2 Standard multi-purpose grease");
+        setTokenDescription(1, "2.5",   "NLGI Grease Grade 2.5 Slightly firmer than NLGI 2");
+        setTokenDescription(1, "3",   "NLGI Grease Grade 3 Firm grease");
+
+        // Base Oil / Thickener Type
+        setTokenIndexName(2, "Base Oil / Thickener Type");
+        setTokenDescription(2, "M", "Mineral Oil (Base Oil)");
+        setTokenDescription(2, "Na", "Sodium");
+        setTokenDescription(2, "Li", "Lithium");
+        setTokenDescription(2, "LiHS", "Lithium Hydroxystearate");
+        setTokenDescription(2, "Li/Ca", "Lithium Calcium");
+        setTokenDescription(2, "LiC", "Lithium Complex");
+        setTokenDescription(2, "CaC", "Calcium Complex");
+        setTokenDescription(2, "AlC", "Aluminum Complex");
+        setTokenDescription(2, "BaC", "Barium Complex");
+        setTokenDescription(2, "Clay", "Clay");
+        setTokenDescription(2, "Ben", "Bentonite");
+        setTokenDescription(2, "PU", "PolyUrea");
+        setTokenDescription(2, "PTFE", "Polytetrafluoroethylene (Specialist)");
+        setTokenDescription(2, "PFPE", "Perfluoropolyether (Specialist)");
+        setTokenDescription(2, "P", "Polymer");
+
+        // Additive Type / Grease Base Oil Type
+        setTokenIndexName(3, "Additive Type /\nGrease Base Oil Type");
+        setTokenDescription(3, "EP", "Extreme Pressure (Enhances load-carrying capacity)");
+        setTokenDescription(3, "AW", "Anti-Wear (Reduces wear on metal surfaces)");
+        setTokenDescription(3, "AW/EP", "Combined Anti-Wear and Extreme Pressure Additives");
+        setTokenDescription(3, "HT", "High Temperature (Suitable for elevated temperature applications)");
+        setTokenDescription(3, "HT PLUS", "Enhanced High-Temperature Performance");
+        setTokenDescription(3, "H1", "Food-Grade Lubricant (Approved for incidental food contact)");
+        setTokenDescription(3, "NC", "Non-Corrosive (Prevents rust and oxidation)");
+        setTokenDescription(3, "WD", "Water-Displacing (Repels water, prevents corrosion)");
+        setTokenDescription(3, "M", "Mineral Oil");
+        setTokenDescription(3, "S", "Synthetic");
+        setTokenDescription(3, "S(PAO)", "Synthetic (Polyalphaolefin - PAO)");
+        setTokenDescription(3, "S(ESTER)", "Synthetic (Ester-Based)");
+        setTokenDescription(3, "S(PFPE)", "Synthetic (Perfluoropolyether - PFPE)");
+        setTokenDescription(3, "S(PAG)", "Synthetic (Polyalkylene Glycol - PAG)");
+        setTokenDescription(3, "S/S", "Semi-Synthetic (Blend of Mineral & Synthetic Oils)");
+        setTokenDescription(3, "PFPE", "Perfluoropolyether (High-performance synthetic base)");
+        ///setTokenDescription(3, "PAO", "PolyAlphaOlefin");
+        ///setTokenDescription(3, "PAG", "Polyalkylene Glycol");
+        ///setTokenDescription(3, "PG", "Polyglycol");
+        ///setTokenDescription(3, "POE", "Polyol ester");
+        ///setTokenDescription(3, "PFPE", "Perfluoropolyether (Specialist)");
+
+        // Grease Visc / Additive
+        setTokenIndexName(4, "Grease Viscosity / Additive");
+        setTokenDescription(4, "WD",	    "Water - Displacing(Repels water, prevents corrosion)");
+        setTokenDescription(4, "EP",	    "Extreme Pressure(Enhances load - carrying capacity)");
+        setTokenDescription(4, "HVI",	    "High Viscosity Index(Maintains viscosity across temperature changes)");
+        setTokenDescription(4, "ASHLESS",	"Ashless Additive(Burns cleanly, leaving no residue)");
+        setTokenDescription(4, "HT",	    "High Temperature(Enhances performance at elevated temperatures)");
+        setTokenDescription(4, "VG100",	"ISO Viscosity Grade 100");
+        setTokenDescription(4, "VG460",	"ISO Viscosity Grade 460");
+        setTokenDescription(4, "32",	    "ISO VG 32 (Low - viscosity lubricant)");
+        setTokenDescription(4, "46",	    "ISO VG 46 (Common hydraulic oil viscosity)");
+        setTokenDescription(4, "100",	    "ISO VG 100");
+        setTokenDescription(4, "150",	    "ISO VG 150");
+        setTokenDescription(4, "150/200",	"Viscosity range between ISO VG 150 and 200");
+        setTokenDescription(4, "180/220",	"Viscosity range between ISO VG 180 and 220");
+        setTokenDescription(4, "220",	    "ISO VG 220");
+        setTokenDescription(4, "270",	    "Viscosity rating(typically centistokes - cSt)");
+        setTokenDescription(4, "390",	    "Viscosity rating(cSt)");
+        setTokenDescription(4, "400",	    "Viscosity rating(cSt)");
+        setTokenDescription(4, "460",	    "ISO VG 460");
+        setTokenDescription(4, "680",	    "ISO VG 680");
+        setTokenDescription(4, "1000",	    "ISO VG 1000");
+        setTokenDescription(4, "1350",	    "ISO VG 1350");
+        setTokenDescription(4, "1500",	    "ISO VG 1500");
+        ///
+        ///setTokenDescription(4, "VG10", "Polyglycol");
+
+        // Additive Type 3 / Application
+        setTokenIndexName(5, "Additive Type 3 / Application");
+        setTokenDescription(5, "ASHLESS",	"Ashless Additive (Leaves no solid residue, commonly used in clean-burning lubricants)");
+        setTokenDescription(5, "H1",		"Food-Grade Lubricant (Approved for incidental food contact in food-processing equipment)");
+        setTokenDescription(5, "EP",		"Extreme Pressure (Enhances load-carrying capacity, prevents wear under high pressure)");
+        setTokenDescription(5, "EP(Mo)",	"Extreme Pressure with Molybdenum Disulfide (MoS₂) (Enhances anti-wear and load-bearing properties)");
+        setTokenDescription(5, "EP(Grph)",  "Extreme Pressure with Graphite (Provides solid lubrication, ideal for high-load applications)");
+        setTokenDescription(5, "AW",		"Anti-Wear (Reduces wear in high-friction applications)");
+        setTokenDescription(5, "AW/EP",	    "Combination of Anti-Wear and Extreme Pressure properties");
+        setTokenDescription(5, "HT",		"High Temperature (Designed for use in high-temperature environments)");
+        setTokenDescription(5, "180",		"Likely refers to viscosity rating (e.g., cSt at 40°C)");
+        setTokenDescription(5, "460",		"ISO Viscosity Grade 460 (Industrial lubricant standard)");
+        setTokenDescription(5, "1500",	    "ISO Viscosity Grade 1500 (Used in very high-load applications)");
+
+        auto prepare_table = [](QTableView* table, QStandardItemModel* model)
+        {
+            model->setHeaderData(0, Qt::Horizontal, "Token");
+            model->setHeaderData(1, Qt::Horizontal, "Description");
+            table->setModel(model);
+        };
+
+        // Thickener Type
+        /*ui->A_tbl->setModel(description_maps[0].model);
+        ui->B_tbl->setModel(description_maps[1].model);
+        ui->C_tbl->setModel(description_maps[2].model);
+        ui->D_tbl->setModel(description_maps[3].model);
+        ui->E_tbl->setModel(description_maps[4].model);
+        ui->F_tbl->setModel(description_maps[5].model);*/
+
+        populateTokenDescriptionModels();
+
+        prepare_table(ui->A_tbl, description_maps[0].model);
+        prepare_table(ui->B_tbl, description_maps[1].model);
+        prepare_table(ui->C_tbl, description_maps[2].model);
+        prepare_table(ui->D_tbl, description_maps[3].model);
+        prepare_table(ui->E_tbl, description_maps[4].model);
+        prepare_table(ui->F_tbl, description_maps[5].model);
+
+        //ui->A_tbl->resizeColumnsToContents();
+        //ui->B_tbl->resizeColumnsToContents();
+        //ui->C_tbl->resizeColumnsToContents();
+        //ui->D_tbl->resizeColumnsToContents();
+        //ui->E_tbl->resizeColumnsToContents();
+
+        
+    }
+
     rebuildDatabaseAndPopulateUI();
 }
 
@@ -753,33 +913,6 @@ void PageOptions::processExportPDF()
     {
         if (batch_dialog->isSinglePDF())
         {
-            /*QByteArray composite_pdf = *pdfData;
-
-            if (pdfPainter)
-            {
-                pdfPainter->end();
-                delete pdfPainter;
-                pdfPainter = nullptr;
-            }
-
-            if (pdfWriter)
-            {
-                delete pdfWriter;
-                pdfWriter = nullptr;
-            }
-
-            if (pdfBuffer)
-            {
-                delete pdfBuffer;
-                pdfBuffer = nullptr;
-            }
-
-            if (pdfData)
-            {
-                delete pdfData;
-                pdfData = nullptr;
-            }*/
-
             auto composite_pdf = pdf_writer.finalize();
             pdf_exporter->doSave("Select PDF Path", "label.pdf", "PDF File (*.pdf);", composite_pdf);
         }
@@ -796,7 +929,7 @@ void PageOptions::processExportPDF()
     }
 
     auto pair = product_oiltype_entries.at(export_index);
-    
+
     // Process current file
     recomposePage(pair.first.c_str(), pair.second, false, [this, pair](QGraphicsScene* scene, ComposerResultInt result)
     {
@@ -823,7 +956,6 @@ void PageOptions::processExportPDF()
             batch_dialog->addLogMessage(("Composed:  " + pair.first).c_str());
         else
         {
-            //batch_dialog->addLogError("");
             batch_dialog->addLogError(("Error:  " + pair.first).c_str());
 
             if (result & ComposerResult::MISSING_MATERIAL_CODE)
@@ -836,7 +968,6 @@ void PageOptions::processExportPDF()
                 batch_dialog->addLogError("   - Invalid:  Shape Color");
             if (result & ComposerResult::MISSING_BACK_COLOR)
                 batch_dialog->addLogError("   - Invalid:  Background Color");
-            //batch_dialog->addLogError("");
         }
 
         ++export_index;
@@ -846,6 +977,17 @@ void PageOptions::processExportPDF()
         // Schedule the next file processing without blocking the UI
         QTimer::singleShot(50, this, &PageOptions::processExportPDF);
     });
+}
+
+void PageOptions::onChangeSelectedMaterialEntry()
+{
+    field_shape->setCurrentItem(nullableFieldPropTxt(selected_entry->cell_shape->txt));
+    field_shape_col->setCurrentItem(nullableFieldPropTxt(selected_entry->cell_shape_color->txt));
+    field_back_col->setCurrentItem(nullableFieldPropTxt(selected_entry->cell_back_color->txt));
+    field_inner_back_col->setCurrentItem(nullableFieldPropTxt(selected_entry->cell_inner_back_color->txt));
+
+    recomposePage(getSelectedProduct(), selected_entry, true);
+    updateGenericCodeDescriptionTable();
 }
 
 QString PageOptions::getSelectedProduct()
@@ -859,10 +1001,10 @@ QString PageOptions::getSelectedProduct()
 }
 
 ComposerResultInt PageOptions::recomposePage(
-    QString product_name, 
-    OilTypeEntryPtr entry, 
+    QString product_name,
+    OilTypeEntryPtr entry,
     bool allow_errors,
-    std::function<void(QGraphicsScene *, ComposerResultInt)> callback)
+    std::function<void(QGraphicsScene*, ComposerResultInt)> callback)
 {
     ComposerResultInt ret = 0;
 
@@ -889,7 +1031,7 @@ ComposerResultInt PageOptions::recomposePage(
         if (!composeInfo.shape.valid || entry->cell_shape->txt.size() == 0)
             ret |= ComposerResult::MISSING_SHAPE;
 
-        if (entry->cell_shape_color->txt.size() == 0) 
+        if (entry->cell_shape_color->txt.size() == 0)
             ret |= ComposerResult::MISSING_SHAPE_COLOR;
 
         if (entry->cell_back_color->txt.size() == 0)
@@ -916,10 +1058,80 @@ ComposerResultInt PageOptions::recomposePage(
 void PageOptions::updateGenericCodeDescriptionTable()
 {
     OilTypeEntryPtr entry = selected_entry;
-    QString generic_code = entry->cell_generic_code->txt.c_str();
-    QStringList parts = generic_code.split('-');
+    const string_ex& generic_code = entry->cell_generic_code->txt;
+    int cur_generic_substr_i = 0;
+   
+    //description_model.clear();
+    description_model.removeRows(0, description_model.rowCount());
 
-    for (int i=0; i<parts.size(); i)
+    for (int i=0; ; i++)
+    {
+        if (i >= description_maps.size())
+            break;
+
+        QString name = description_maps[i].name; // e.g. "Application", "Grease Consistency"
+        std::string matched_token;
+
+        auto lookup = description_maps[i].lookup;
+
+        // Greedy algorithm for matching next substring
+        for (size_t j = 0; j < lookup.size(); j++)
+        {
+            // Do we have any tokens left to read?
+            if (cur_generic_substr_i >= generic_code.size())
+                break;
+
+            const string_ex &lookup_tok = lookup.at(j).first;
+            int remaining_len = generic_code.size() - cur_generic_substr_i;
+            int max_match_len = std::min(remaining_len, static_cast<int>(lookup_tok.size()));
+            
+            // Qt assert bug? "n <= d.size - pos". Resorting to std::string instead
+            //bool substr_matched = (generic_code.sliced(cur_generic_substr_i, max_match_len).toStdString() == lookup_tok);
+
+            bool substr_matched = generic_code.substr(cur_generic_substr_i, max_match_len).tolower() == lookup_tok.tolower();
+
+            bool proceeded_by_delim = 
+                ((cur_generic_substr_i + lookup_tok.size()) == generic_code.size()) // Followed by null-terminator?
+                || (generic_code[cur_generic_substr_i + max_match_len] == '-');     // Followed by '-'?
+
+            if (substr_matched && proceeded_by_delim)
+            {
+                // Found a match, consume substring
+                cur_generic_substr_i += lookup_tok.size() + 1; // +1 for hyphen
+                matched_token = lookup_tok;
+                break;
+            }
+        }
+
+        QString desc = description_maps[i].lookup.get(matched_token).c_str();
+
+        QList<QStandardItem*> rowItems;
+
+        rowItems.push_back(new QStandardItem(matched_token.c_str()));
+        rowItems.push_back(new QStandardItem(desc));
+
+        description_model.insertRow(i, rowItems);
+        description_model.setHeaderData(i, Qt::Vertical, name);
+    }
+
+    description_model.setHeaderData(0, Qt::Horizontal, "Token");
+    description_model.setHeaderData(1, Qt::Horizontal, "Description");
+
+    ui->description_tbl->setModel(&description_model);
+    ui->description_tbl->resizeRowsToContents();
+    ui->description_tbl->resizeColumnsToContents();
+    ui->description_tbl->setColumnWidth(0, 60);
+    //ui->description_tbl->horizontalHeader()->setSectionResizeMode(QHeaderView::setStretchLastSection);
+
+    //ui->description_tbl->resizeRowsToContents();
+    //ui->description_tbl->stretch
+
+    for (int row = 0; row < ui->description_tbl->model()->rowCount(); ++row)
+    {
+        int currentHeight = ui->description_tbl->rowHeight(row);
+        if (currentHeight < 25)
+            ui->description_tbl->setRowHeight(row, 25);
+    }
 }
 
 void PageOptions::updateStatusBar()
@@ -937,7 +1149,7 @@ void PageOptions::rebuildDatabaseAndPopulateUI()
 {
     if (!rebuildDatabase())
         QMessageBox::critical(this, "Error", "Unable to parse CSV headers. Please assign a new valid CSV.");
-    
+
     repopulateLists();
 }
 
@@ -1130,7 +1342,7 @@ void PageOptions::repopulateLists()
     if (pagePreview)
     {
         QTableView* table = pagePreview->getTable();
-        table->setModel(&table_model);
+        table->setModel(&csv_model);
 
         int row = 0;
         /*{
@@ -1138,17 +1350,17 @@ void PageOptions::repopulateLists()
             rowItems.append(new QStandardItem("Hello 1!"));
             rowItems.append(new QStandardItem("Hello 2!"));
             rowItems.append(new QStandardItem("Hello 3!"));
-            table_model.insertRow(row++, rowItems);
+            csv_model.insertRow(row++, rowItems);
         }
         {
             QList<QStandardItem*> rowItems;
             rowItems.append(new QStandardItem("World 1!"));
             rowItems.append(new QStandardItem("World 2!"));
             rowItems.append(new QStandardItem("World 3!"));
-            table_model.insertRow(row++, rowItems);
+            csv_model.insertRow(row++, rowItems);
         }*/
 
-        table_model.clear();
+        csv_model.clear();
 
         auto csv_headers = csv.getHeaders();
 
@@ -1174,7 +1386,7 @@ void PageOptions::repopulateLists()
             qsizetype col = 0;
 
             // Material code
-            if (col >= headers.size()) headers.resize(col+1);
+            if (col >= headers.size()) headers.resize(col + 1);
             headers[col++] = "Material Code";
 
             rowItems.append(new QStandardItem(entry->cell_material_code->txt.c_str()));
@@ -1222,17 +1434,17 @@ void PageOptions::repopulateLists()
                 rowItems.append(new QStandardItem(vendor_txt));
             }
 
-            table_model.insertRow(row++, rowItems);
+            csv_model.insertRow(row++, rowItems);
         }
 
-        table_model.setHorizontalHeaderLabels(headers);
+        csv_model.setHorizontalHeaderLabels(headers);
         table->resizeColumnsToContents();
     }
     //field_merged_code->setSelectable(false);
 }
 
 QByteArray PageOptions::serialize()
-{ 
+{
     QJsonObject jsonObj;
 
     QJsonObject composerInfoGeneratorObj;
@@ -1245,7 +1457,7 @@ QByteArray PageOptions::serialize()
     return jsonDoc.toJson();
 }
 
-void PageOptions::deserialize(const QByteArray &json)
+void PageOptions::deserialize(const QByteArray& json)
 {
     QJsonDocument jsonDoc = QJsonDocument::fromJson(json);
 
@@ -1270,7 +1482,7 @@ void PageOptions::deserialize(const QByteArray &json)
 /*SearchableList* PageOptions::addSearchableListRow1(QString field_id, QString field_name)
 {
     SearchableList* field_widget = new SearchableList(field_id.toStdString(), field_name);
-    
+
     ui->field_list->addWidget(field_widget);
     return field_widget;
 }

@@ -59,6 +59,7 @@ struct string_ex : public std::string
     string_ex(const char *str) : string(str) {}
     string_ex(const string &str) : string(str) {}
     string_ex(string::iterator it1, string::iterator it2) : string(it1, it2) {}
+    string_ex(string::const_iterator it1, string::const_iterator it2) : string(it1, it2) {}
 
     std::vector<string_ex> splitByWhitespace()
     {
@@ -114,7 +115,12 @@ struct string_ex : public std::string
         return false;
     }
 
-    string_ex tolower()
+    string_ex substr(size_t offset, size_t count) const
+    {
+        return std::string::substr(offset, count);
+    }
+
+    string_ex tolower() const
     {
         string_ex ret(begin(), end());
         std::transform(ret.begin(), ret.end(), ret.begin(),

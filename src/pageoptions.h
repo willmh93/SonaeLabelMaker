@@ -271,7 +271,10 @@ public:
 
     void set(const K& k, const V& v)
     {
-        auto it = std::find(this->begin(), this->end(), k);
+        auto it = std::find_if(this->begin(), this->end(), [k](const auto& entry) {
+            return entry.first == k;
+        });
+
         if (it == this->end())
             this->emplace_back(std::make_pair(k, v));
         else
@@ -290,12 +293,49 @@ public:
     }
 };
 
+struct TokenDescriptionMap
+{
+    QString name;
+    flat_map<string_ex, string_ex> lookup;
+    QStandardItemModel* model = nullptr;
+
+    TokenDescriptionMap()
+    {
+        model = new QStandardItemModel();
+    }
+
+    void set(QString token, QString decription)
+    {
+        lookup.set(token.toStdString(), decription.toStdString());
+    }
+
+    void sortByDescendingLength()
+    {
+        lookup.sort([](const auto &pair_a, const auto& pair_b)
+        {
+            return pair_a.first.size() < pair_b.first.size();
+        });
+    }
+
+    void populateModel()
+    {
+        if (model)
+        {
+            for (size_t i = 0; i < lookup.size(); i++)
+            {
+                QList<QStandardItem*> rowItems;
+
+                rowItems.push_back(new QStandardItem(lookup.at(i).first.c_str()));
+                rowItems.push_back(new QStandardItem(lookup.at(i).second.c_str()));
+                model->insertRow(0, rowItems);
+            }
+        }
+    }
+};
+
 class PageOptions : public QWidget
 {
     Q_OBJECT;
-
-    //CSVTable data;
-    //std::vector<SearchableList*> field_widgets;
 
     QByteArray warning_icon_data;
 
@@ -306,20 +346,10 @@ class PageOptions : public QWidget
     SearchableList* field_shape_col;
     SearchableList* field_back_col;
     SearchableList* field_inner_back_col;
-    
     SearchableList* field_products;
 
     PagePreview* pagePreview = nullptr;
     QStatusBar* statusBar;
-
-    struct MergedCodeComparator {
-        bool operator()(const std::string& lhs, const std::string& rhs) const {
-            if (lhs.size() == rhs.size()) {
-                return lhs < rhs;
-            }
-            return lhs.size() < rhs.size();
-        }
-    };
 
     flat_map<std::string, OilTypeEntryPtr> merged_code_entries;
     flat_map<std::string, OilTypeEntryPtr> product_oiltype_entries;
@@ -328,15 +358,6 @@ class PageOptions : public QWidget
 
     ComposerInfoGenerator composerGenerator;
     ComposerInfo composeInfo;
-
-public:
-    explicit PageOptions(QStatusBar* statusBar, QWidget *parent = nullptr);
-    ~PageOptions();
-
-    void setPagePreview(PagePreview* _pagePreview)
-    {
-        pagePreview = _pagePreview;
-    }
 
     CSVReader csv;
     QString project_filename;
@@ -347,20 +368,58 @@ public:
     FileManager* project_file_manager = nullptr;
     FileManager* pdf_exporter = nullptr;
 
-    PdfSceneWriter pdf_writer;
-
-    QStandardItemModel table_model;
-
-    //QByteArray *pdfData = nullptr;
-    //QBuffer* pdfBuffer = nullptr;
-    //QPdfWriter* pdfWriter = nullptr;
-    //QPainter* pdfPainter = nullptr;
-    //int pdfPageOffset = 0;
-
     PDFBatchExport* batch_dialog = nullptr;
     QVector<QPair<QString, QByteArray>> pdfs;
     int export_index = 0;
     bool batch_export_busy = false;
+
+    PdfSceneWriter pdf_writer;
+
+    QStandardItemModel csv_model;
+    QStandardItemModel description_model;
+
+    std::vector<TokenDescriptionMap> description_maps;
+
+    void setTokenIndexName(int col, QString name)
+    {
+        if (col >= description_maps.size())
+        {
+            description_maps.resize(col + 1);
+        }
+        description_maps[col].name = name;
+    }
+
+    void setTokenDescription(int col, QString token, QString desc)
+    {
+        if (col >= description_maps.size())
+        {
+            description_maps.resize(col + 1);
+        }
+        description_maps[col].set(token, desc);
+    }
+
+    void populateTokenDescriptionModels()
+    {
+        // First, sort tokens in descending order of length, so greedy algorithm
+        // prioritizes matches with the longest length
+        for (size_t i = 0; i < description_maps.size(); i++)
+            description_maps[i].sortByDescendingLength();
+
+        for (size_t i = 0; i < description_maps.size(); i++)
+            description_maps[i].populateModel();
+    }
+
+    void onChangeSelectedMaterialEntry();
+
+public:
+    explicit PageOptions(QStatusBar* statusBar, QWidget *parent = nullptr);
+    ~PageOptions();
+
+    void setPagePreview(PagePreview* _pagePreview)
+    {
+        pagePreview = _pagePreview;
+    }
+
     
 
     QString nullableFieldPropTxt(std::string txt)
@@ -411,6 +470,8 @@ private:
         OilTypeEntryPtr entry,
         bool allow_errors,
         std::function<void(QGraphicsScene*, ComposerResultInt)> callback=nullptr);
+    
+    
     void updateGenericCodeDescriptionTable();
 
 private:

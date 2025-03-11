@@ -2,6 +2,7 @@
 #include <QScreen>
 #include <QApplication>
 #include <QFile>
+#include <QStyleFactory>
 
 #define NANOSVG_ALL_COLOR_KEYWORDS
 #define NANOSVG_IMPLEMENTATION
@@ -18,13 +19,16 @@
     }
 }*/
 
+
 int main(int argc, char *argv[])
 {
     
-    QApplication::setStyle("fusion");
+    //QApplication::setStyle("fusion");
+
     //qDebug() << "palette: " << QPalette();
     //qputenv("QT_QPA_PLATFORM", "windows:darkmode=2");
     QApplication a(argc, argv);
+    a.setStyle(QStyleFactory::create("Fusion"));
 
     /*int fontId = QFontDatabase::addApplicationFont(":/res/code128.ttf");
     if (fontId == -1) {
@@ -51,7 +55,7 @@ int main(int argc, char *argv[])
     darkPalette.setColor(QPalette::Text, Qt::white);
     darkPalette.setColor(QPalette::Button, QColor(53, 53, 53));
     darkPalette.setColor(QPalette::ButtonText, Qt::white);
-    darkPalette.setColor(QPalette::BrightText, Qt::red);
+    darkPalette.setColor(QPalette::BrightText, Qt::green);
     darkPalette.setColor(QPalette::Link, QColor(42, 130, 218));
     darkPalette.setColor(QPalette::Highlight, QColor(42, 130, 218));
     darkPalette.setColor(QPalette::HighlightedText, Qt::black);
@@ -98,7 +102,7 @@ int main(int argc, char *argv[])
     qDebug() << "Maximized Window Size: " << window.size();
     window.setWindowTitle("Label Maker");
     window.setWindowIcon(QIcon(":/res/sonae_icon.png"));
-    window.setStyleSheet("QLabel { background: red; }");
+    //window.setStyleSheet("QLabel { background: red; }");
     window.showMaximized();
     qDebug() << "Maximized Window Size: " << window.size();
 

@@ -89,14 +89,44 @@ QRadioButton::indicator::checked  {
    <item>
     <widget class="FocusableLineEdit" name="filter">
      <property name="styleSheet">
-      <string notr="true">background: #404040</string>
+      <string notr="true">background: #444444</string>
      </property>
     </widget>
    </item>
    <item>
     <widget class="QListView" name="list">
+     <property name="palette">
+      <palette>
+       <active>
+        <colorrole role="Base">
+         <brush brushstyle="SolidPattern">
+          <color alpha="255">
+           <red>68</red>
+           <green>68</green>
+           <blue>68</blue>
+          </color>
+         </brush>
+        </colorrole>
+       </active>
+       <inactive>
+        <colorrole role="Base">
+         <brush brushstyle="SolidPattern">
+          <color alpha="255">
+           <red>68</red>
+           <green>68</green>
+           <blue>68</blue>
+          </color>
+         </brush>
+        </colorrole>
+       </inactive>
+       <disabled/>
+      </palette>
+     </property>
+     <property name="autoFillBackground">
+      <bool>false</bool>
+     </property>
      <property name="styleSheet">
-      <string notr="true">background: #404040</string>
+      <string notr="true"/>
      </property>
     </widget>
    </item>

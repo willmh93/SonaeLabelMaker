@@ -13,8 +13,6 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
 {
     
-    //setStyleSheet("background-color: red;");
-
     {
         QMenuBar* menuBar = new QMenuBar(this);
         setMenuBar(menuBar);
