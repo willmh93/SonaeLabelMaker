@@ -4,21 +4,53 @@
 #include <QFile>
 #include <QStyleFactory>
 
+
+
 #define NANOSVG_ALL_COLOR_KEYWORDS
 #define NANOSVG_IMPLEMENTATION
 #include "nanosvg.h"
-#include "clipper2/clipper.h"
+//#include "clipper2/clipper.h"
 
-//#include <QFontDatabase>
 
-/*void copyQtLogo()
+/*#include <QStyle>
+#include <QPixmap>
+#include <QDir>
+#include <QIcon>
+
+void saveQtIcons(const QString& outputPath, int size) 
 {
-    QString targetPath = QCoreApplication::applicationDirPath() + "/qtlogo.svg";
-    if (!QFile::exists(targetPath)) {
-        QFile::copy(":/res/logo.svg", targetPath);
+    QDir dir(outputPath + "_" + QString::number(size));
+    if (!dir.exists()) {
+        dir.mkpath(".");
+    }
+
+    struct IconEntry {
+        QStyle::StandardPixmap iconEnum;
+        QString iconName;
+    };
+
+    //for (const auto& entry : icons) {
+    for (int i=0; i < (int)QIcon::ThemeIcon::NThemeIcons; i++)
+    {
+        QIcon::ThemeIcon iconEnum = (QIcon::ThemeIcon)i;
+        QIcon icon = QIcon::fromTheme(iconEnum);
+        QString iconName = icon.name();
+
+        if (!icon.isNull()) {
+            QPixmap pixmap = icon.pixmap(size, size);  // Adjust size as needed
+            QString filePath = dir.filePath(iconName + ".png");
+            if (pixmap.save(filePath)) {
+                qDebug() << "Saved:" << filePath;
+            }
+            else {
+                qDebug() << "Failed to save:" << filePath;
+            }
+        }
+        else {
+            qDebug() << "Icon not found:" << iconName;
+        }
     }
 }*/
-
 
 int main(int argc, char *argv[])
 {
@@ -29,6 +61,13 @@ int main(int argc, char *argv[])
     //qputenv("QT_QPA_PLATFORM", "windows:darkmode=2");
     QApplication a(argc, argv);
     a.setStyle(QStyleFactory::create("Fusion"));
+
+    /*saveQtIcons("icons/icons", 16);
+    saveQtIcons("icons/icons", 32);
+    saveQtIcons("icons/icons", 64);
+    saveQtIcons("icons/icons", 128);
+    saveQtIcons("icons/icons", 256);
+    saveQtIcons("icons/icons", 512);*/
 
     /*int fontId = QFontDatabase::addApplicationFont(":/res/code128.ttf");
     if (fontId == -1) {
@@ -50,7 +89,7 @@ int main(int argc, char *argv[])
     darkPalette.setColor(QPalette::WindowText, Qt::white);
     darkPalette.setColor(QPalette::Base, QColor(40, 40, 40));
     darkPalette.setColor(QPalette::AlternateBase, QColor(60, 60, 60));
-    darkPalette.setColor(QPalette::ToolTipBase, Qt::white);
+    darkPalette.setColor(QPalette::ToolTipBase, QColor(20, 20, 20));
     darkPalette.setColor(QPalette::ToolTipText, Qt::white);
     darkPalette.setColor(QPalette::Text, Qt::white);
     darkPalette.setColor(QPalette::Button, QColor(53, 53, 53));

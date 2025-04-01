@@ -10,9 +10,9 @@
 #include <QJsonArray>
 #include <QJsonValue>
 
-#include <QQmlApplicationEngine>
-#include <QQmlContext>
-#include <QQmlComponent>
+//#include <QQmlApplicationEngine>
+//#include <QQmlContext>
+//#include <QQmlComponent>
 #include <QColorDialog>
 
 #include <QStandardItemModel>
@@ -65,25 +65,27 @@ public:
         shape_map[desc].makeIcon();
     }
 
-    const std::unordered_map<QString, ShapeInfo> shapeMap() const
+    const std::unordered_map<QString, ShapeInfo>& shapeMap() const
     {
         return shape_map;
     }
 
-    const std::unordered_map<QString, QColor> shapeColorMap() const
+    const std::unordered_map<QString, QColor>& shapeColorMap() const
     {
         return shape_color_map;
     }
 
-    const std::unordered_map<QString, QColor> backColorMap() const
+    const std::unordered_map<QString, QColor>& backColorMap() const
     {
         return back_color_map;
     }
 
-    const std::unordered_map<QString, QColor> innerBackColorMap() const
+    const std::unordered_map<QString, QColor>& innerBackColorMap() const
     {
         return inner_back_color_map;
     }
+
+    // 'set' methods
 
     void setShapeInfo(QString desc, ShapeInfo shape_info)
     {
@@ -106,6 +108,76 @@ public:
         inner_back_color_map[desc] = color;
     }
 
+    // 'remove' methods
+
+    void removeShapeInfo(QString desc)
+    {
+        auto it = shape_map.find(desc);
+        if (it != shape_map.end())
+            shape_map.erase(it);
+    }
+
+    void removeShapeColor(QString desc)
+    {
+        auto it = shape_color_map.find(desc);
+        if (it != shape_color_map.end())
+            shape_color_map.erase(it);
+    }
+
+    void removeBackColor(QString desc)
+    {
+        auto it = back_color_map.find(desc);
+        if (it != back_color_map.end())
+            back_color_map.erase(it);
+    }
+
+    void removeInnerBackColor(QString desc)
+    {
+        auto it = inner_back_color_map.find(desc);
+        if (it != inner_back_color_map.end())
+            inner_back_color_map.erase(it);
+    }
+
+    // 'replace' methods
+
+    void replaceShapeInfo(QString desc, QString new_desc)
+    {
+        //if (containsShapeInfo(desc))
+        {
+            ShapeInfo info = getShapeInfo(desc);
+            removeShapeInfo(desc);
+
+            if (!new_desc.isEmpty())
+                setShapeInfo(new_desc, info);
+        }
+    }
+
+    void replaceShapeColor(QString desc, QString new_desc)
+    {
+        auto info = getShapeColor(desc);
+        removeShapeColor(desc);
+        if (!new_desc.isEmpty())
+            setShapeColor(new_desc, info);
+    }
+
+    void replaceBackColor(QString desc, QString new_desc)
+    {
+        auto info = getBackColor(desc);
+        removeBackColor(desc);
+        if (!new_desc.isEmpty())
+            setBackColor(new_desc, info);
+    }
+
+    void replaceInnerBackColor(QString desc, QString new_desc)
+    {
+        auto info = getInnerBackColor(desc);
+        removeInnerBackColor(desc);
+        if (!new_desc.isEmpty())
+            setInnerBackColor(new_desc, info);
+    }
+
+    // 'contains' methods
+
     bool containsShapeInfo(QString desc)
     {
         return shape_map.count(desc) > 0;
@@ -121,6 +193,34 @@ public:
         return back_color_map.count(desc) > 0;
     }
 
+    /// Not needed as of yet (since inner-background isn't considered essential)
+    bool containsInnerBackColor(QString desc)
+    {
+        return inner_back_color_map.count(desc) > 0;
+    }
+
+    // 'contains valid data' methods
+    bool containsValidShapeInfo(QString desc)
+    {
+        return containsShapeInfo(desc) && getShapeInfo(desc).valid;
+    }
+
+    bool containsValidShapeColor(QString desc)
+    {
+        return containsShapeColor(desc) && getShapeColor(desc).isValid();
+    }
+
+    bool containsValidBackColor(QString desc)
+    {
+        return containsBackColor(desc) && getBackColor(desc).isValid();
+    }
+
+    bool containsValidInnerBackColor(QString desc)
+    {
+        return containsInnerBackColor(desc) && getInnerBackColor(desc).isValid();
+    }
+
+    // todo: Switch to internal pointers. Entire byte-arrays being copied
     ShapeInfo getShapeInfo(QString desc)
     {
         if (shape_map.count(desc))
@@ -134,7 +234,7 @@ public:
         if (shape_color_map.count(desc))
             return shape_color_map[desc];
         else
-            return QColor(0, 0, 0, 0);
+            return QColor(); // null color
     }
 
     QColor getBackColor(QString desc)
@@ -142,7 +242,7 @@ public:
         if (back_color_map.count(desc))
             return back_color_map[desc];
         else
-            return QColor(0, 0, 0, 0);
+            return QColor(); // null color
     }
 
     QColor getInnerBackColor(QString desc)
@@ -150,7 +250,7 @@ public:
         if (inner_back_color_map.count(desc))
             return inner_back_color_map[desc];
         else
-            return QColor(0, 0, 0, 0);
+            return QColor(); // null color
     }
 
     void serialize(QJsonObject &info) const
@@ -209,15 +309,16 @@ public:
 
 enum ComposerResult
 {
-    SUCCEEDED=0ull,
-    MISSING_MATERIAL_CODE=1ull,
-    MISSING_GENERIC_CODE=2ull,
-    MISSING_PRODUCT_NAME=4ull,
-    MISSING_SHAPE=8ull,
-    MISSING_SHAPE_COLOR=16ull,
-    MISSING_BACK_COLOR=32ull
+    SUCCEEDED=0ul,
+    MISSING_MATERIAL_CODE=1ul,
+    MISSING_GENERIC_CODE=2ul,
+    MISSING_PRODUCT_NAME=4ul,
+    MISSING_SHAPE=8ul,
+    MISSING_SHAPE_COLOR=16ul,
+    MISSING_BACK_COLOR=32ul,
+    NO_SELECTED_ITEM=64ul
 };
-typedef unsigned long long ComposerResultInt;
+typedef unsigned long ComposerResultInt;
 
 struct OilTypeEntry
 {
@@ -257,6 +358,18 @@ class flat_map : public std::vector<std::pair<K, V>>
 {
 public:
 
+    bool contains(const K& k)
+    {
+        auto it = std::find_if(this->begin(), this->end(), [k](const auto& entry) {
+            return entry.first == k;
+        });
+
+        if (it == this->end())
+            return false;
+
+        return true;
+    }
+
     V &get(const K& k)
     {
         auto it = std::find_if(this->begin(), this->end(), [k](const auto &entry) {
@@ -279,6 +392,16 @@ public:
             this->emplace_back(std::make_pair(k, v));
         else
             it->second = v;
+    }
+
+    void remove(const K& k)
+    {
+        auto it = std::find_if(this->begin(), this->end(), [k](const auto& entry) {
+            return entry.first == k;
+        });
+
+        if (it != this->end())
+            this->erase(it);
     }
 
     V& operator[](const K& k)
@@ -313,7 +436,7 @@ struct TokenDescriptionMap
     {
         lookup.sort([](const auto &pair_a, const auto& pair_b)
         {
-            return pair_a.first.size() < pair_b.first.size();
+            return pair_a.first.size() > pair_b.first.size();
         });
     }
 
@@ -321,26 +444,85 @@ struct TokenDescriptionMap
     {
         if (model)
         {
+            model->clear();
             for (size_t i = 0; i < lookup.size(); i++)
             {
                 QList<QStandardItem*> rowItems;
 
                 rowItems.push_back(new QStandardItem(lookup.at(i).first.c_str()));
                 rowItems.push_back(new QStandardItem(lookup.at(i).second.c_str()));
-                model->insertRow(0, rowItems);
+                model->insertRow(i, rowItems);
             }
         }
     }
+
+    void serialize(QJsonObject& info) const
+    {
+        for (size_t i = 0; i < lookup.size(); i++)
+        {
+            auto& item = lookup.at(i);
+            QString name = item.first.c_str();
+            QString desc = item.second.c_str();
+            info[name] = desc;
+        }
+    }
+
+    void deserialize(const QJsonObject& info)
+    {
+        lookup.clear();
+        for (auto it = info.constBegin(); it != info.constEnd(); ++it)
+        {
+            QString name = it.key();
+            QString desc = it.value().toString();
+            lookup[name.toStdString()] = desc.toStdString();
+        }
+    }
 };
+
+class SelectedProductDescriptionModel : public QStandardItemModel {
+public:
+    using QStandardItemModel::QStandardItemModel;
+
+    QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const override {
+        if (!index.isValid())
+            return QVariant();
+
+        if (role == Qt::ForegroundRole) {
+            int row = index.row();
+            int col = index.column();
+            QVariant cellValue = QStandardItemModel::data(index, Qt::DisplayRole);
+
+            // Highlight red of cell missing
+            if (col == 0 && cellValue.toString() == "<no match>") {
+                return QBrush(Qt::red);
+            }
+            else if (col == 1)
+            {
+                QModelIndex first_cell_index = this->index(row, 0);
+                if (first_cell_index.data(Qt::DisplayRole).toString() == "<no match>")
+                    return QBrush(Qt::red);
+            }
+        }
+
+        // For all other roles, use the default behavior
+        return QStandardItemModel::data(index, role);
+    }
+};
+
 
 class PageOptions : public QWidget
 {
     Q_OBJECT;
 
+    // Icon data
     QByteArray warning_icon_data;
+    QByteArray delete_inactive_data;
+    QByteArray delete_active_data;
 
+    // Radio buttons
     std::shared_ptr<std::vector<SearchableList*>> radio_lists;
 
+    // Fields
     SearchableList* field_merged_code;
     SearchableList* field_shape;
     SearchableList* field_shape_col;
@@ -349,67 +531,73 @@ class PageOptions : public QWidget
     SearchableList* field_products;
 
     PagePreview* pagePreview = nullptr;
-    QStatusBar* statusBar;
+    QStatusBar* statusBar; // todo: Remove?
 
+    // Merged Code / Product vector-like maps
     flat_map<std::string, OilTypeEntryPtr> merged_code_entries;
     flat_map<std::string, OilTypeEntryPtr> product_oiltype_entries;
-
     OilTypeEntryPtr selected_entry = nullptr;
+    void onChangeSelectedMaterialEntry();
 
-    ComposerInfoGenerator composerGenerator;
+    // "User count" maps for each Product 
+    std::unordered_map<std::string, int> users_shape;
+    std::unordered_map<std::string, int> users_shape_color;
+    std::unordered_map<std::string, int> users_back_color;
+    std::unordered_map<std::string, int> users_inner_back_color;
+
+    // Helpers
+    bool noUsers(std::unordered_map<std::string, int>& users_map, QString desc)
+    {
+        if (desc == "<unassigned>") return false;
+        return users_map[desc.toStdString()] == 0;
+    };
+
+    QString nullableFieldPropTxt(std::string txt)
+    {
+        if (txt.size() == 0) return "<unassigned>";
+        return txt.c_str();
+    };
+
+
+    // Composer info / generator
     ComposerInfo composeInfo;
+    ComposerInfoGenerator composerGenerator;
 
-    CSVReader csv;
+    // Project
     QString project_filename;
-    QString csv_filename;
 
+    // CSV
+    CSVReader csv;
+    QString csv_filename;
+    QStandardItemModel csv_model;
+
+    // File Management
     FileManager* csv_picker = nullptr;
     FileManager* svg_picker = nullptr;
     FileManager* project_file_manager = nullptr;
     FileManager* pdf_exporter = nullptr;
 
+    // PDF
     PDFBatchExport* batch_dialog = nullptr;
     QVector<QPair<QString, QByteArray>> pdfs;
     int export_index = 0;
     bool batch_export_busy = false;
-
     PdfSceneWriter pdf_writer;
 
-    QStandardItemModel csv_model;
-    QStandardItemModel description_model;
-
+    // Token-Description maps
     std::vector<TokenDescriptionMap> description_maps;
+    void setTokenColumnName(int col, QString name);
+    void setTokenDescription(int col, QString token, QString desc);
 
-    void setTokenIndexName(int col, QString name)
-    {
-        if (col >= description_maps.size())
-        {
-            description_maps.resize(col + 1);
-        }
-        description_maps[col].name = name;
-    }
+    // Selected product token description table model
+    SelectedProductDescriptionModel selected_product_description_model;
+    void onEditSelectedProductTokenDescription(int row, int col, QString txt);
+    void updateGenericCodeDescriptionTable();
 
-    void setTokenDescription(int col, QString token, QString desc)
-    {
-        if (col >= description_maps.size())
-        {
-            description_maps.resize(col + 1);
-        }
-        description_maps[col].set(token, desc);
-    }
+    // Settings "all tables" models
+    void populateTokenDescriptionModels();
+    void populateTokenDescriptionTables();
 
-    void populateTokenDescriptionModels()
-    {
-        // First, sort tokens in descending order of length, so greedy algorithm
-        // prioritizes matches with the longest length
-        for (size_t i = 0; i < description_maps.size(); i++)
-            description_maps[i].sortByDescendingLength();
-
-        for (size_t i = 0; i < description_maps.size(); i++)
-            description_maps[i].populateModel();
-    }
-
-    void onChangeSelectedMaterialEntry();
 
 public:
     explicit PageOptions(QStatusBar* statusBar, QWidget *parent = nullptr);
@@ -420,22 +608,6 @@ public:
         pagePreview = _pagePreview;
     }
 
-    
-
-    QString nullableFieldPropTxt(std::string txt)
-    {
-        if (txt.size() == 0)
-            return "<none>";
-        return txt.c_str();
-    };
-
-    //SearchableList* addSearchableListRow1(QString field_id, QString field_name);
-    //SearchableList* addSearchableListRow2(QString field_id, QString field_name);
-    
-    //SearchableList* initSearchableList(QString field_id, QString field_name);
-    
-    
-    //void populateOilTypeFields();
 
     void updateStatusBar();
 
@@ -443,7 +615,17 @@ public:
 
     void rebuildDatabaseAndPopulateUI();
     bool rebuildDatabase();
-    void repopulateLists();
+    void repopulateLists(
+        bool bMergedCode=true,
+        bool bProducts = true,
+        bool bShape = true,
+        bool bShapeCol = true,
+        bool bBackCol = true,
+        bool bInnerBackCol = true,
+        bool bCSV = true
+    );
+    void countStyleUsers();
+    void updateItemsEditable();
 
     QByteArray serialize();
     void deserialize(const QByteArray& json);
@@ -471,8 +653,7 @@ private:
         bool allow_errors,
         std::function<void(QGraphicsScene*, ComposerResultInt)> callback=nullptr);
     
-    
-    void updateGenericCodeDescriptionTable();
+   
 
 private:
     Ui::PageOptions *ui;

@@ -13,26 +13,26 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
 {
     
-    {
+    /*{
         QMenuBar* menuBar = new QMenuBar(this);
         setMenuBar(menuBar);
 
-        /*menuBar->setStyleSheet("\
-            QMenuBar {                            \
-                color: white;                     \
-                background: #1e1e1e;              \
-            }                                     \
-            QMenu {                               \
-                background-color: #1e1e1e;        \
-                border: 1px solid black;          \
-            }                                     \
-            QMenu::item{                          \
-                background-color: transparent;    \
-            }                                     \
-            QMenu::item:selected{                 \
-                background-color: #4e4e4e;        \
-            }"
-        );*/
+        //menuBar->setStyleSheet("\
+        //    QMenuBar {                            \
+        //        color: white;                     \
+        //        background: #1e1e1e;              \
+        //    }                                     \
+        //    QMenu {                               \
+        //        background-color: #1e1e1e;        \
+        //        border: 1px solid black;          \
+        //    }                                     \
+        //    QMenu::item{                          \
+        //        background-color: transparent;    \
+        //    }                                     \
+        //    QMenu::item:selected{                 \
+        //        background-color: #4e4e4e;        \
+        //    }"
+        //);
 
         menuBar->setStyleSheet("\
             QMenuBar {                            \
@@ -73,7 +73,7 @@ MainWindow::MainWindow(QWidget *parent)
     statusBar->setStyleSheet("QStatusBar { background-color: #252525; }");
 
     statusBar->showMessage("No project active");
-    setStatusBar(statusBar);
+    setStatusBar(statusBar);*/
 
     /*const QString splitterSheet = "\
         QSplitter { background: #1e1e1e; } \
@@ -102,7 +102,8 @@ MainWindow::MainWindow(QWidget *parent)
         //}"
     //);
 
-    pageOptions = new PageOptions(statusBar, this);
+    //pageOptions = new PageOptions(statusBar, this);
+    pageOptions = new PageOptions(nullptr, this);
     pagePreview = new PagePreview(this);
     pageOptions->setPagePreview(pagePreview);
 

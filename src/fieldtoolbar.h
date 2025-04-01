@@ -15,6 +15,11 @@ public:
     explicit FieldToolbar(QWidget *parent = nullptr);
     ~FieldToolbar();
 
+signals:
+
+    void onAddBtn();
+    //void onRemoveBtn();
+
 private:
     Ui::FieldToolbar *ui;
 };

@@ -247,12 +247,12 @@ struct CSVCell
 
 struct CSVRow : public std::vector<CSVCellPtr>
 {
-    CSVCellPtr findByHeader(CSVHeaderPtr header)
+    CSVCellPtr findCellByHeader(CSVHeaderPtr header)
     {
         return at(header->col);
     }
 
-    CSVCellPtr findByHeaderCustomID(const std::string& id)
+    CSVCellPtr findCellByHeaderCustomID(const std::string& id)
     {
         size_t count = size();
         for (size_t i = 0; i < count; i++)
@@ -264,16 +264,10 @@ struct CSVRow : public std::vector<CSVCellPtr>
         return nullptr; // make_shared<CSVCell>(nullptr, -1, -1, "");
     }
 
-    //CSVCellPtr findByHeader(const std::string& setHeader)
-    //{
-    //    size_t count = 0;
-    //    for (size_t i = 0; i < count; i++)
-    //    {
-    //        if (at(i)->setHeader->txt == setHeader)
-    //            return at(i);
-    //    }
-    //    return nullptr;
-    //}
+    ///void pushCell(std::string txt)
+    ///{
+    ///    push_back(std::make_shared<CSVCell>());
+    ///}
 };
 
 struct CSVTable : public std::vector<CSVRow>
@@ -316,6 +310,16 @@ public:
     std::vector<CSVCellPtr> findCells(std::string txt, CSVRect r = CSVRect());
     std::vector<CSVCellPtr> findCellsFuzzy(std::string txt, CSVRect r = CSVRect(), bool fuzzy_space = true, bool case_sensitive = false);
     std::vector<CSVCellPtr> findCellsWith(std::string txt, CSVRect r = CSVRect());
+
+    CSVRow newRow()
+    {
+        return CSVRow();
+    }
+
+    void pushRowHeader(std::string header)
+    {
+
+    }
 
     CSVHeaderPtr setHeader(CSVCellPtr cell);
     std::vector<CSVHeaderPtr> getHeaders();

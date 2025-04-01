@@ -2,6 +2,7 @@
 #define SEARCHABLELIST_H
 
 #include <QWidget>
+#include <QScrollbar>
 #include <QListView>
 #include <QLineEdit>
 #include <QStandardItemModel>
@@ -9,13 +10,51 @@
 #include <QSortFilterProxyModel>
 #include <QStyledItemDelegate>
 #include <QPainter>
-
+#include <QMouseEvent>
+#include <QPointer>
 
 #include <any>
 
 namespace Ui {
 class SearchableList;
 }
+
+class SearchableListView;
+class StyledItemDelegate;
+class SearchableList;
+
+struct ListItemCallbackData
+{
+    SearchableListView* list_view;
+    const StyledItemDelegate* item_delegate;
+    const QStyleOptionViewItem& style_option_view;
+
+    QAbstractItemModel* model;
+    const QModelIndex& model_index;
+
+    QPoint mouse_pos;
+    QMouseEvent* mouse_event;
+
+    //
+
+    void drawSelectionHighlightRect(QPainter* painter);
+
+    bool overIcon(QRectF r);
+    bool overRect(QRectF r);
+    void drawIconBorder(QPainter* painter, QRectF r);
+
+    void drawXIcon(QPainter* painter, QRectF r);
+    void drawIcon(QPainter* painter, QRectF r, const QByteArray &icon);
+
+    void drawRowText(
+        QPainter* painter, 
+        QString txt, 
+        int x, 
+        bool center_text=false, 
+        QColor color_default= Qt::white, 
+        QColor color_selected=Qt::black
+    );
+};
 
 class FocusableLineEdit : public QLineEdit
 {
@@ -48,15 +87,46 @@ struct SearchableListItem
 {
 private:
     std::any data;
-public:
-    QString txt;
+    std::any meta;
 
-    SearchableListItem()
-    {}
-    SearchableListItem(const QString& txt) : txt(txt)
-    {}
-    SearchableListItem(const QString &txt, const std::any &data) : txt(txt), data(data)
-    {}
+public:
+    int uid;
+    int sort_index = 0;
+
+    QString txt;
+    QString old_txt;
+    bool editable;
+
+
+    SearchableListItem(int _uid=-1)
+    {
+        uid = _uid;
+        editable = false;
+    }
+    SearchableListItem(int _uid, const QString& txt) : txt(txt)
+    {
+        uid = _uid;
+        editable = false;
+    }
+    SearchableListItem(int _uid, const QString &txt, const std::any &data) : txt(txt), data(data)
+    {
+        uid = _uid;
+        editable = false;
+    }
+    SearchableListItem(const SearchableListItem& rhs)
+    {
+        data = rhs.data;
+        meta = rhs.meta;
+        uid = rhs.uid;
+        sort_index = rhs.sort_index;
+        txt = rhs.txt;
+        editable = rhs.editable;
+    }
+
+    QRect itemRect()
+    {
+
+    }
 
     template<typename T> T as()
     {
@@ -66,6 +136,11 @@ public:
     void setData(const std::any& _data)
     {
         data = _data;
+    }
+
+    void setEditable(bool b=true)
+    {
+        editable = b;
     }
 };
 
@@ -79,11 +154,45 @@ class CustomListModel : public QAbstractListModel
 
 public:
     explicit CustomListModel(QObject* parent = nullptr)
-        : QAbstractListModel(parent) {}
+        : QAbstractListModel(parent) 
+    {}
 
     void setItems(const QList<SearchableListItem>& items) {
         beginResetModel();
         m_items = items;
+
+        endResetModel();
+    }
+
+    QList<SearchableListItem> getItems() const
+    {
+        return m_items;
+    }
+
+    SearchableListItem& itemAt(int index)
+    {
+        Q_ASSERT(index >= 0 && index < m_items.size());
+        return m_items[index];
+    }
+
+    //int itemCount() const { return m_items.size(); }
+
+    std::unordered_map<QString,int> uid_indexes;
+    void lockSortOrder()
+    {
+        uid_indexes.clear();
+        for (int i = 0; i < m_items.size(); i++)
+            uid_indexes[m_items[i].txt] = i;
+    }
+
+    void unlockSortOrder()
+    {
+        beginResetModel();
+        std::sort(m_items.begin(), m_items.end(),
+            [this](const SearchableListItem& a, const SearchableListItem& b)
+        {
+            return uid_indexes[a.txt] < uid_indexes[b.txt];
+        });
         endResetModel();
     }
 
@@ -91,6 +200,7 @@ public:
     {
         beginInsertRows(QModelIndex(), m_items.size(), m_items.size());
         m_items.append(item);
+
         endInsertRows();
     }
 
@@ -108,11 +218,13 @@ public:
     {
         for (qsizetype i = 0; i < m_items.size(); i++)
         {
-            if (&m_items[i] == item)
+            if (m_items[i].uid == item->uid)
                 return i;
         }
         return -1;
     }
+
+
 
     SearchableListItem *findItem(QString txt)
     {
@@ -146,21 +258,51 @@ public:
         return m_items.size();
     }
 
-    QVariant data(const QModelIndex& index, int role) const override {
+    Qt::ItemFlags flags(const QModelIndex& index) const
+    {
+        if (!index.isValid())
+            return Qt::NoItemFlags;
+
+        const SearchableListItem& item = m_items.at(index.row());
+
+        if (item.editable)
+            return QAbstractItemModel::flags(index) | Qt::ItemIsEditable;
+        else
+            return QAbstractItemModel::flags(index);
+
+    }
+
+
+    QVariant data(const QModelIndex& index, int role) const override 
+    {
         if (!index.isValid() || index.row() >= m_items.size())
             return QVariant();
 
         const SearchableListItem& item = m_items.at(index.row());
 
-        
-
         switch (role) {
-        case Qt::DisplayRole: return item.txt;
+        case Qt::DisplayRole: return item.txt;// +" (" + (item.editable ? "editable)" : "fixed)");
         case Qt::UserRole: return QVariant::fromValue(item);  // Custom role
         //case Qt::BackgroundRole: return item.color;
         default: return QVariant();
         }
     }
+
+    bool setData(const QModelIndex& index, const QVariant& value, int role = Qt::EditRole) override
+    {
+        if (!index.isValid() || index.row() >= m_items.size())
+            return false;
+
+        if (role == Qt::EditRole)
+        {
+            m_items[index.row()].txt = value.toString();
+            emit dataChanged(index, index, { role });
+            return true;
+        }
+
+        return false;
+    }
+
 
     QVariant headerData(int section, Qt::Orientation orientation, int role) const override {
         if (orientation == Qt::Horizontal && role == Qt::DisplayRole)
@@ -177,7 +319,18 @@ class CustomFilterProxyModel : public QSortFilterProxyModel {
     Q_OBJECT
 
 public:
-    explicit CustomFilterProxyModel(QObject* parent = nullptr) : QSortFilterProxyModel(parent) {}
+    explicit CustomFilterProxyModel(QObject* parent = nullptr) : QSortFilterProxyModel(parent) 
+    {
+        //setSortRole(Qt::UserRole);
+        //setDynamicSortFilter(true);
+    }
+
+    //bool lessThan(const QModelIndex& left, const QModelIndex& right) const override 
+    //{
+    //    int left_uid = left.data(Qt::UserRole).value<SearchableListItem>().uid;
+    //    int right_uid = right.data(Qt::UserRole).value<SearchableListItem>().uid;
+    //    return left_uid < right_uid;
+    //}
 
     void setFilterString(const QString& filter) {
         m_filterString = filter;
@@ -212,16 +365,57 @@ private:
     QString m_filterString;
 };
 
-class SearchableList;
+class CommittingLineEdit : public QLineEdit 
+{
+    Q_OBJECT;
 
-class XItemDelegate : public QStyledItemDelegate 
+    bool committed = false;
+
+public:
+    explicit CommittingLineEdit(QWidget* parent = nullptr) : QLineEdit(parent) {}
+
+signals:
+    void commitAndClose(QWidget* editor);  // This will be connected in the delegate
+
+protected:
+    void focusOutEvent(QFocusEvent* event) override {
+        QLineEdit::focusOutEvent(event);
+        triggerCommit();
+    }
+
+    void keyPressEvent(QKeyEvent* event) override {
+        if ((event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter) && !committed) {
+            triggerCommit();
+        }
+        else {
+            QLineEdit::keyPressEvent(event);
+        }
+    }
+
+private:
+    void triggerCommit() {
+        if (!committed) {
+            committed = true;
+            emit commitAndClose(this);
+        }
+    }
+};
+
+
+class StyledItemDelegate : public QStyledItemDelegate 
 {
     Q_OBJECT;
 
     int row_size = 16;
 
+    mutable QPointer<QWidget> current_editor;
+
+
 public:
-    XItemDelegate(QObject* parent = nullptr) : QStyledItemDelegate(parent) {}
+    StyledItemDelegate(QObject* parent = nullptr) : QStyledItemDelegate(parent)
+    {
+
+    }
 
     void setRowHeight(int height)
     {
@@ -237,28 +431,128 @@ public:
         const QStyleOptionViewItem& option,
         const QModelIndex& index) override;
 
+    QRectF getIconRect(
+        const QStyleOptionViewItem& option,
+        const QModelIndex& index,
+        int iconIndex,
+        bool from_end=false,
+        qreal padding=0) const;
+
+    QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem&, const QModelIndex& index) const;
+
+    void closeEditor(QWidget* editor, QAbstractItemDelegate::EndEditHint hint);
+
+    // Default text when text-edit shown
+    void setEditorData(QWidget* editor, const QModelIndex& index) const;
+
+    void updateEditorGeometry(QWidget* editor,
+        const QStyleOptionViewItem& option,
+        const QModelIndex& index) const;
+
+
+    void commitData(QWidget* editor)
+    {
+        qDebug() << "commitData called on" << editor;
+        QStyledItemDelegate::commitData(editor);
+    }
+
+    void setModelData(QWidget* editor, QAbstractItemModel* model, const QModelIndex& index) const
+    {
+        if (QLineEdit* lineEdit = qobject_cast<QLineEdit*>(editor))
+        {
+            QString newText = lineEdit->text();
+            qDebug() << "User entered:" << newText;
+
+            model->setData(index, newText, Qt::EditRole);
+
+            const SearchableListItem& item = index.data(Qt::UserRole).value<SearchableListItem>();
+        }
+    }
+
+    bool eventFilter(QObject* obj, QEvent* event) 
+    {
+        QWidget* widget = qobject_cast<QWidget*>(obj);
+
+        if (event->type() == QEvent::KeyPress) {
+            QKeyEvent* keyEvent = static_cast<QKeyEvent*>(event);
+            if (keyEvent->key() == Qt::Key_Return || keyEvent->key() == Qt::Key_Enter) {
+                int a = 5;
+            }
+        }
+        if (!widget || widget != current_editor)
+            return false;
+
+        QWidget* editorWidget = qobject_cast<QWidget*>(obj);
+        QAbstractItemView* view = qobject_cast<QAbstractItemView*>(this->parent()); // or from signal context
+
+        if (editorWidget && view) {
+            QWidget* ancestor = editorWidget->parentWidget();
+            bool belongsToView = false;
+
+            while (ancestor) {
+                if (ancestor == view || ancestor == view->viewport()) {
+                    belongsToView = true;
+                    break;
+                }
+                ancestor = ancestor->parentWidget();
+            }
+
+            if (!belongsToView) {
+                qDebug() << "Editor does NOT belong to view. Editor:" << editorWidget
+                    << " View:" << view;
+                return true; // Block or handle manually
+            }
+        }
+
+        if (QLineEdit* editor = qobject_cast<QLineEdit*>(obj)) 
+        {
+            if (event->type() == QEvent::KeyPress) {
+                QKeyEvent* keyEvent = static_cast<QKeyEvent*>(event);
+                if (keyEvent->key() == Qt::Key_Return || keyEvent->key() == Qt::Key_Enter) {
+                    emit commitData(editor);
+                    emit closeEditor(editor, QAbstractItemDelegate::SubmitModelCache);
+                    return true;  // prevent further propagation
+                }
+            }
+        }
+        return QStyledItemDelegate::eventFilter(obj, event);
+    }
+
 signals:
-    void iconClicked(const QModelIndex& index);
+
+    //void iconClicked(const QModelIndex& index);
+    //void dataChanged(const QModelIndex& index, QString txt);
+};
+
+class SearchableListView : public QListView
+{
+    Q_OBJECT;
+
+    friend class StyledItemDelegate;
+
+public:
+    explicit SearchableListView(QWidget* parent = nullptr) : QListView(parent) 
+    {
+        setMouseTracking(true);
+    }
+
+    //void mouseMoveEvent(QMouseEvent* event) override;
+
+    QPoint getMousePos() const 
+    {
+        return mouse_pos; 
+    }
 
 private:
-    QRect getIconRect(
-        const QStyleOptionViewItem& option,
-        const QModelIndex& index, 
-        const QRect& itemRect) const
-    {
-        int yOffset = option.rect.height() / 4; // Center it vertically
-        int size = option.rect.height() / 2;  // Scale with row height
+    QPoint mouse_pos;
 
-        // Get the text and calculate its bounding box
-        QString text = index.data(Qt::DisplayRole).toString();
-        QFontMetrics fm(option.font);
-        int textWidth = fm.horizontalAdvance(text);  // Get text width
-
-        int xOffset = textWidth + 10;
-        QRect xRect(xOffset, option.rect.y() + yOffset, size, size);
-        return xRect;
-
-    }
+protected:
+    //void resizeEvent(QResizeEvent* event) override
+    //{
+    //    QListView::resizeEvent(event);
+    //    int scrollbarWidth = verticalScrollBar()->isVisible() ? verticalScrollBar()->width() : 0;
+    //    setViewportMargins(0, 0, scrollbarWidth, 0);
+    //}
 };
 
 class SearchableList : public QWidget
@@ -273,6 +567,11 @@ class SearchableList : public QWidget
 
     //std::vector<SearchableListItem> all_items;
 
+    int editor_margin_left = 0;
+    int editor_margin_right = 0;
+
+    int SearchableListItem_UID_Counter = 0;
+
 protected:
 
     void _setRadioChecked(bool b, bool blockSignals=false);
@@ -280,14 +579,25 @@ protected:
 public:
 
     std::function<void(bool)> on_radio_toggle = nullptr;
-    std::function<void(SearchableListItem&, QPainter* painter, QRect&r)> icon_painter = nullptr;
-    std::function<void(SearchableListItem&)> icon_click_callback = nullptr;
-    std::function<void(SearchableListItem&)> item_doubleclick_callback = nullptr;
+
+    std::function<bool(SearchableListItem&, QPainter*, ListItemCallbackData&)>
+        item_paint_callback = nullptr;
+    //std::function<void(SearchableListItem&)> 
+    //    icon_click_callback = nullptr;
+    
+    std::function<void(SearchableListItem&, ListItemCallbackData&)>
+        item_mousemove_callback = nullptr;
+    std::function<void(SearchableListItem&, ListItemCallbackData&)>
+        item_click_callback = nullptr;
+    std::function<void(SearchableListItem&, ListItemCallbackData&)>
+        item_doubleclick_callback = nullptr;
     
 
 signals:
 
     void onChangedSelected(SearchableListItem&);
+    void itemModified(SearchableListItem&);
+
     //void onChangedSelectedIndex(const QModelIndex&);
 
 public:
@@ -316,48 +626,70 @@ public:
         on_radio_toggle = _onToggle;
     }
 
-    void setIconPainter(std::function<void(SearchableListItem&, QPainter* painter, QRect& r)> _icon_painter)
+    void onItemPaint(std::function<bool(SearchableListItem&, QPainter*, ListItemCallbackData&)> _item_paint_callback)
     {
-        icon_painter = _icon_painter;
+        item_paint_callback = _item_paint_callback;
     }
 
-    void onClickIcon(std::function<void(SearchableListItem&)> _icon_click_callback)
+    /*void onClickIcon(std::function<void(SearchableListItem&)> _icon_click_callback)
     {
         icon_click_callback = _icon_click_callback;
+    }*/
+    
+    void onItemClick(std::function<void(SearchableListItem&, ListItemCallbackData &)> _item_click_callback)
+    {
+        item_click_callback = _item_click_callback;
     }
 
-    void onDoubleClickItem(std::function<void(SearchableListItem&)> _item_doubleclick_callback)
+    void onItemDoubleClick(std::function<void(SearchableListItem&, ListItemCallbackData&)> _item_doubleclick_callback)
     {
         item_doubleclick_callback = _item_doubleclick_callback;
+    }
+
+    void onItemMouseMove(std::function<void(SearchableListItem&, ListItemCallbackData&)> _item_mousemove_callback)
+    {
+        item_mousemove_callback = _item_mousemove_callback;
+    }
+
+    void lockSortOrder()
+    {
+        model.lockSortOrder();
+    }
+
+    void unlockSortOrder()
+    {
+        model.unlockSortOrder();
     }
 
     void clear()
     {
         model.clear();
+        SearchableListItem_UID_Counter = 0;
     }
 
     void addListItem(QString txt)
     {
-        model.appendRow(SearchableListItem(txt));
+        model.appendRow(SearchableListItem(SearchableListItem_UID_Counter++, txt));
     }
 
     template<typename T>
     void addListItem(QString txt, const T& data)
     {
-        model.appendRow(SearchableListItem(txt, data));
+        model.appendRow(SearchableListItem(SearchableListItem_UID_Counter++, txt, data));
     }
 
-    void addUniqueListItem(QString txt)
+    SearchableListItem *addUniqueListItem(QString txt)
     {
         if (model.find(txt) < 0)
-            model.appendRow(SearchableListItem(txt));
+            model.appendRow(SearchableListItem(SearchableListItem_UID_Counter++, txt));
+        return findItem(txt);
     }
 
     template<typename T>
     void addUniqueListItem(QString txt, const T& data)
     {
         if (model.find(txt) < 0)
-            model.appendRow(SearchableListItem(txt, data));
+            model.appendRow(SearchableListItem(SearchableListItem_UID_Counter++, txt, data));
     }
 
     template<typename T>
@@ -370,6 +702,11 @@ public:
             return true;
         }
         return false;
+    }
+
+    CustomListModel* getModel()
+    {
+        return &model;
     }
 
     SearchableListItem* findItem(QString txt)
@@ -392,11 +729,18 @@ public:
     void setCurrentItem(int i);
     void setCurrentItem(const QString &txt);
     void setCurrentItem(SearchableListItem* item);
-
     bool getCurrentItem(SearchableListItem* item);
+    void beginEdit(SearchableListItem* item);
 
     void setRowHeight(int height);
-
+    int editorMarginLeft() { return editor_margin_left; }
+    int editorMarginRight() { return editor_margin_right; }
+    void setEditorMarginLeft(int margin) { editor_margin_left = margin; }
+    void setEditorMarginRight(int margin) { editor_margin_right = margin; }
+    void setEditorMargins(int left, int right) { 
+        editor_margin_left = left;
+        editor_margin_right = right;
+    }
 
 private:
 
@@ -406,7 +750,7 @@ private:
     CustomListModel  model;
     CustomFilterProxyModel proxyModel;
 
-    XItemDelegate* item_delegate;
+    StyledItemDelegate* item_delegate;
 
 };
 

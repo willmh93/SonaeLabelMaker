@@ -30,7 +30,7 @@
     <number>0</number>
    </property>
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayout">
+    <layout class="QHBoxLayout" name="toolbar_layout">
      <item>
       <widget class="QRadioButton" name="combo">
        <property name="styleSheet">
@@ -72,6 +72,16 @@ QRadioButton::indicator::checked  {
       </widget>
      </item>
      <item>
+      <widget class="QWidget" name="custom_toolbar_items" native="true">
+       <property name="minimumSize">
+        <size>
+         <width>10</width>
+         <height>0</height>
+        </size>
+       </property>
+      </widget>
+     </item>
+     <item>
       <spacer name="horizontalSpacer">
        <property name="orientation">
         <enum>Qt::Orientation::Horizontal</enum>
@@ -94,7 +104,7 @@ QRadioButton::indicator::checked  {
     </widget>
    </item>
    <item>
-    <widget class="QListView" name="list">
+    <widget class="SearchableListView" name="list">
      <property name="palette">
       <palette>
        <active>
@@ -128,6 +138,24 @@ QRadioButton::indicator::checked  {
      <property name="styleSheet">
       <string notr="true"/>
      </property>
+     <property name="sizeAdjustPolicy">
+      <enum>QAbstractScrollArea::SizeAdjustPolicy::AdjustIgnored</enum>
+     </property>
+     <property name="editTriggers">
+      <set>QAbstractItemView::EditTrigger::DoubleClicked</set>
+     </property>
+     <property name="alternatingRowColors">
+      <bool>true</bool>
+     </property>
+     <property name="verticalScrollMode">
+      <enum>QAbstractItemView::ScrollMode::ScrollPerPixel</enum>
+     </property>
+     <property name="horizontalScrollMode">
+      <enum>QAbstractItemView::ScrollMode::ScrollPerPixel</enum>
+     </property>
+     <property name="resizeMode">
+      <enum>QListView::ResizeMode::Adjust</enum>
+     </property>
     </widget>
    </item>
   </layout>
@@ -137,6 +165,11 @@ QRadioButton::indicator::checked  {
    <class>FocusableLineEdit</class>
    <extends>QLineEdit</extends>
    <header location="global">searchablelist.h</header>
+  </customwidget>
+  <customwidget>
+   <class>SearchableListView</class>
+   <extends>QListView</extends>
+   <header>searchablelist.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

@@ -16,6 +16,7 @@
 #include <QFontDatabase>
 
 #include "mainwindow.h"
+#include "csv_reader.h"
 
 
 QImage changeColor(QImage image, const QColor &newColor) {
@@ -202,11 +203,6 @@ PagePreview::PagePreview(QWidget *parent)
 {
     ui->setupUi(this);
 
-
-    //view->setSceneRect(page_rect);
-    //view->fitInView(page_rect, Qt::KeepAspectRatio);
-    //view->scale(0.25, 0.25);
-
     //MainWindow* main_window = qobject_cast<MainWindow*>(topLevelWidget());
     //options = main_window->pageOptions;
 
@@ -224,13 +220,7 @@ PagePreview::PagePreview(QWidget *parent)
 
     constexpr qreal margin = 0.05;
 
-
-    //view->scale(zoom, zoom);
-    //view->setSceneRect(page_rect);
-    //view->update();
-
     view->show();
-    //view->fitInView(view_area_rect, Qt::KeepAspectRatio);
 
     view->setSceneRect(page_rect);// 0, 0, 100, 100);
     view->setScene(&scene);
@@ -244,15 +234,11 @@ PagePreview::PagePreview(QWidget *parent)
 
     view->setSceneRect(0, 0, 100, 100);
 
-    // Prevent scene from resizing view
-    
-
-    /*view->update();
-    view->updateGeometry();
-    this->updateGeometry();*/
-
-    /*view->setSceneRect(page_rect);*/
-
+    connect(ui->save_csv, &QPushButton::clicked, this, []()
+    {
+        CSVReader csv;
+        //csv.
+    });
 }
 
 PagePreview::~PagePreview()

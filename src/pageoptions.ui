@@ -106,6 +106,9 @@ QPushButton {
             <height>32</height>
            </size>
           </property>
+          <property name="toolTip">
+           <string/>
+          </property>
           <property name="text">
            <string> Load Project </string>
           </property>
@@ -128,6 +131,9 @@ QPushButton {
             <width>120</width>
             <height>32</height>
            </size>
+          </property>
+          <property name="toolTip">
+           <string/>
           </property>
           <property name="text">
            <string> Save Project </string>
@@ -168,6 +174,10 @@ QPushButton {
             <height>32</height>
            </size>
           </property>
+          <property name="toolTip">
+           <string>Load CSV file
+CSV data gets embedded in Project file</string>
+          </property>
           <property name="text">
            <string> Assign CSV </string>
           </property>
@@ -204,6 +214,10 @@ QPushButton {
             <height>32</height>
            </size>
           </property>
+          <property name="toolTip">
+           <string>Download selected product label
+using active page template</string>
+          </property>
           <property name="text">
            <string>Export PDF</string>
           </property>
@@ -222,6 +236,10 @@ QPushButton {
             <width>130</width>
             <height>32</height>
            </size>
+          </property>
+          <property name="toolTip">
+           <string>Download all product labels
+using active page template</string>
           </property>
           <property name="text">
            <string>Batch Export PDF</string>
@@ -512,10 +530,17 @@ QPushButton {
                   <number>9</number>
                  </property>
                  <item>
-                  <widget class="SearchableList" name="shape_list" native="true"/>
+                  <widget class="SearchableList" name="shape_list" native="true">
+                   <property name="toolTip">
+                    <string/>
+                   </property>
+                  </widget>
                  </item>
                  <item>
                   <widget class="SearchableList" name="shape_color_list" native="true">
+                   <property name="toolTip">
+                    <string/>
+                   </property>
                    <property name="styleSheet">
                     <string notr="true">
 QTabWidget {
@@ -529,10 +554,18 @@ QTabWidget {
                  <item>
                   <layout class="QVBoxLayout" name="verticalLayout_3">
                    <item>
-                    <widget class="SearchableList" name="back_color_list" native="true"/>
+                    <widget class="SearchableList" name="back_color_list" native="true">
+                     <property name="toolTip">
+                      <string/>
+                     </property>
+                    </widget>
                    </item>
                    <item>
-                    <widget class="SearchableList" name="inner_back_color_list" native="true"/>
+                    <widget class="SearchableList" name="inner_back_color_list" native="true">
+                     <property name="toolTip">
+                      <string/>
+                     </property>
+                    </widget>
                    </item>
                   </layout>
                  </item>

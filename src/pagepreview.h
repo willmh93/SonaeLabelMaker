@@ -798,6 +798,7 @@ struct ShapeInfo
         }
 
         QTextStream stream(&file);
+        ret.valid = true;
         ret.svg_data = stream.readAll();
         file.close();
 
@@ -814,6 +815,7 @@ struct ShapeInfo
             return ret;
         }
 
+        ret.valid = true;
         ret.svg_data = data;
         ret.makeIcon();
         return ret;
