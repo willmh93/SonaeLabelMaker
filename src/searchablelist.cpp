@@ -214,6 +214,11 @@ void SearchableList::refresh()
     }
 }
 
+void SearchableList::repaint()
+{
+    ui->list->viewport()->update();
+}
+
 void SearchableList::updateSelectionModel()
 {
     if (ui->list->selectionMode() != QAbstractItemView::SelectionMode::NoSelection)
@@ -315,6 +320,11 @@ void SearchableList::setRowHeight(int height)
     item_delegate->setRowHeight(height);
     //ui->list->setGridSize(QSize(0, height)); // Increase row height to 50 pixels
     //list_view->setIconSize(QSize(height, height));
+}
+
+const SearchableListView* SearchableList::getListView() const
+{
+    return ui->list;
 }
 
 /*void SearchableList::addListboxItemFiltered(const QString& txt)
@@ -477,10 +487,21 @@ bool StyledItemDelegate::editorEvent(QEvent* event, QAbstractItemModel* model, c
     return QStyledItemDelegate::editorEvent(event, model, option, index);
 }
 
-QRectF StyledItemDelegate::getIconRect(const QStyleOptionViewItem& option, const QModelIndex& index, int iconIndex, bool from_end, qreal padding) const
+QRectF StyledItemDelegate::getIconRect(
+    const QStyleOptionViewItem& option, 
+    const QModelIndex& index,
+    int iconIndex, 
+    bool from_end, 
+    qreal icon_margin,
+    qreal icon_spacing,
+    qreal start_spacing,
+    qreal overrideSide) const
 {
     int yOffset = option.rect.height() / 4; // Center it vertically
     int size = option.rect.height() / 2;  // Scale with row height
+
+    if (overrideSide > 0)
+        size = overrideSide;
 
     // Get the text and calculate its bounding box
     //QString text = index.data(Qt::DisplayRole).toString();
@@ -489,15 +510,15 @@ QRectF StyledItemDelegate::getIconRect(const QStyleOptionViewItem& option, const
 
     if (from_end)
     {
-        int xOffset = option.rect.x() + option.rect.width() - 10 - ((iconIndex + 1) * size + 4);
+        int xOffset = option.rect.x() + option.rect.width() - start_spacing - ((iconIndex+1) * (size+icon_margin+icon_spacing));
         QRectF xRect(xOffset, option.rect.y() + yOffset, size, size);
-        return xRect.adjusted(-padding, -padding, padding, padding);
+        return xRect.adjusted(-icon_margin, -icon_margin, icon_margin, icon_margin);
     }
     else
     {
-        int xOffset = option.rect.x() + /*textWidth +*/ 4 + (iconIndex * size + 4);
+        int xOffset = option.rect.x() + start_spacing + (iconIndex * (size+icon_margin+icon_spacing));
         QRectF xRect(xOffset, option.rect.y() + yOffset, size, size);
-        return xRect.adjusted(-padding, -padding, padding, padding);
+        return xRect.adjusted(-icon_margin, -icon_margin, icon_margin, icon_margin);
     }
 }
 
@@ -561,6 +582,91 @@ void StyledItemDelegate::updateEditorGeometry(QWidget* editor, const QStyleOptio
     editor->setGeometry(adjusted);
 }
 
+bool StyledItemDelegate::eventFilter(QObject* obj, QEvent* event)
+{
+    QWidget* widget = qobject_cast<QWidget*>(obj);
+    if (!widget)
+        return false;
+
+    if (widget == current_editor)
+    {
+        // Editor filter
+        QWidget* editorWidget = qobject_cast<QWidget*>(obj);
+        QAbstractItemView* view = qobject_cast<QAbstractItemView*>(this->parent());
+
+        if (editorWidget && view)
+        {
+            QWidget* ancestor = editorWidget->parentWidget();
+            bool belongsToView = false;
+
+            while (ancestor) {
+                if (ancestor == view || ancestor == view->viewport()) {
+                    belongsToView = true;
+                    break;
+                }
+                ancestor = ancestor->parentWidget();
+            }
+
+            if (!belongsToView)
+                return true; // Editor does NOT belong to view, block
+        }
+
+        if (QLineEdit* editor = qobject_cast<QLineEdit*>(obj))
+        {
+            if (event->type() == QEvent::KeyPress)
+            {
+                QKeyEvent* keyEvent = static_cast<QKeyEvent*>(event);
+                if (keyEvent->key() == Qt::Key_Return || keyEvent->key() == Qt::Key_Enter)
+                {
+                    emit commitData(editor);
+                    emit closeEditor(editor, QAbstractItemDelegate::SubmitModelCache);
+                    return true;  // prevent further propagation
+                }
+            }
+        }
+    }
+    else
+    {
+        SearchableListView* list_view = qobject_cast<SearchableListView*>(obj);
+        if (!list_view)
+            return false;
+
+        SearchableList* searchable_list = qobject_cast<SearchableList*>(list_view->parent());
+
+        if (event->type() == QEvent::Leave)
+        {
+            if (searchable_list->item_mousemove_callback)
+            {
+                QStyleOptionViewItem option;
+                option.initFrom(list_view);
+
+                QMouseEvent* mouseEvent = static_cast<QMouseEvent*>(event);
+                list_view->mouse_pos.setX(0);
+                list_view->mouse_pos.setY(0);
+
+                for (int row = 0; row < list_view->model()->rowCount(); ++row)
+                {
+                    QModelIndex index = list_view->model()->index(row, 0);
+                    SearchableListItem item = index.data(Qt::UserRole).value<SearchableListItem>();
+
+                    ListItemCallbackData cb_data = {
+                        list_view,
+                        this,
+                        option,
+                        nullptr,
+                        index,
+                        list_view->mouse_pos,
+                        mouseEvent
+                    };
+                    searchable_list->item_mousemove_callback(item, cb_data);
+                }
+            }
+            list_view->viewport()->update();
+        }
+    }
+    return QStyledItemDelegate::eventFilter(obj, event);
+}
+
 /*bool StyledItemDelegate::eventFilter(QObject* obj, QEvent* event)
 {
     SearchableListView* list_view = qobject_cast<SearchableListView*>(obj);
@@ -576,6 +682,8 @@ void StyledItemDelegate::updateEditorGeometry(QWidget* editor, const QStyleOptio
             QStyleOptionViewItem option;
             option.initFrom(list_view);
 
+            QMouseEvent* mouseEvent = static_cast<QMouseEvent*>(event);
+
             for (int row = 0; row < list_view->model()->rowCount(); ++row)
             {
                 QModelIndex index = list_view->model()->index(row, 0);
@@ -588,6 +696,7 @@ void StyledItemDelegate::updateEditorGeometry(QWidget* editor, const QStyleOptio
                     nullptr,
                     index,
                     list_view->mouse_pos,
+                    mouseEvent
                 };
                 searchable_list->item_mousemove_callback(item, cb_data);
             }

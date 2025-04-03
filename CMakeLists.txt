@@ -9,8 +9,8 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Gui Core Widgets Svg Xml Quick QuickControls2)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Gui Core Widgets Svg Xml Quick QuickControls2)
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Gui Core Widgets Svg Xml)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Gui Core Widgets Svg Xml)
 
 # sets default startup project in Visual Studio
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT SonaeLabelMaker)
@@ -26,10 +26,10 @@ file(GLOB PROJECT_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/Clipper2Lib/include/clipper2/*.h"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/Clipper2Lib/src/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.ui"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/*.qml"
+    #"${CMAKE_CURRENT_SOURCE_DIR}/src/Clipper2Lib/include/clipper2/*.h"
+    #"${CMAKE_CURRENT_SOURCE_DIR}/src/Clipper2Lib/src/*.cpp"
+    #"${CMAKE_CURRENT_SOURCE_DIR}/src/*.qml"
     #"${CMAKE_CURRENT_SOURCE_DIR}/src/SFC/*.hpp"
     #"${CMAKE_CURRENT_SOURCE_DIR}/src/SFC/*.cpp"
     #"${CMAKE_CURRENT_SOURCE_DIR}/src/SFC/nanosvg++/*.hpp"
@@ -38,7 +38,7 @@ file(GLOB PROJECT_SOURCES CONFIGURE_DEPENDS
 )
 
 file(GLOB UI_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.ui")
-file(GLOB STYLE_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/res/*.qss")
+#file(GLOB STYLE_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/res/*.qss")
 
 # Add csv-parser header files
 #add_subdirectory(csv-parser)
@@ -107,8 +107,6 @@ target_link_libraries(SonaeLabelMaker
     PRIVATE Qt${QT_VERSION_MAJOR}::Widgets
     PRIVATE Qt${QT_VERSION_MAJOR}::Svg
     PRIVATE Qt${QT_VERSION_MAJOR}::Xml
-    PRIVATE Qt${QT_VERSION_MAJOR}::Quick
-    PRIVATE Qt${QT_VERSION_MAJOR}::QuickControls2
     #PRIVATE ZLIB::ZLIB
     #PRIVATE ${MINIZIP_LIBRARY}/bzip2.lib
     #PRIVATE ${MINIZIP_LIBRARY}/lzma.lib

@@ -3,7 +3,7 @@
 #include <QApplication>
 #include <QFile>
 #include <QStyleFactory>
-
+#include <QFontDatabase>
 
 
 #define NANOSVG_ALL_COLOR_KEYWORDS
@@ -101,9 +101,14 @@ int main(int argc, char *argv[])
 
     a.setPalette(darkPalette);
 
-    QFont defaultFont = a.font();
-    defaultFont.setPointSize(9); // Set a fixed font size
-    a.setFont(defaultFont);
+    //QFont defaultFont = a.font();
+
+    int main_font_id = QFontDatabase::addApplicationFont(":/res/segoe_ui.ttf");
+    QString main_font_family = QFontDatabase::applicationFontFamilies(main_font_id).at(0);
+    QFont main_font(main_font_family);
+    main_font.setPointSize(9);
+
+    a.setFont(main_font);
 
 
     MainWindow window;

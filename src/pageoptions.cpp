@@ -371,8 +371,11 @@ PageOptions::PageOptions(QStatusBar* _statusBar, QWidget* parent)
 
     ShapeItem warning_icon;
     warning_icon.load(":/res/warning.svg");
-    warning_icon.setFillStyle(QColor(Qt::red));
-    warning_icon_data = warning_icon.data();
+    warning_icon.setFillStyle(QColor(255,0,0,100));
+    warning_icon_red_data = warning_icon.data();
+
+    warning_icon.setFillStyle(QColor(255,255,0,100));
+    warning_icon_yellow_data = warning_icon.data();
 
     ShapeItem delete_icon;
     delete_icon.load(":/res/bin.svg");
@@ -531,76 +534,48 @@ PageOptions::PageOptions(QStatusBar* _statusBar, QWidget* parent)
         }
     };
 
-    
+    field_merged_code->onItemMouseMove([this](SearchableListItem& item, ListItemCallbackData& info)
+    {
+        // todo: Make helper function for this as it's a duplicate of the painter
+        auto entry = item.as<OilTypeEntryPtr>();
+        bool shape_assigned = composerGenerator.containsShapeInfo(entry->cell_shape->txt.c_str());
+        bool shape_color_assigned = composerGenerator.containsShapeColor(entry->cell_shape_color->txt.c_str());
+        bool back_color_assigned = composerGenerator.containsBackColor(entry->cell_back_color->txt.c_str());
+        bool valid = !entry->missingData() && shape_assigned && shape_color_assigned && back_color_assigned;
+
+        int icon_index = 0;
+
+        if (!valid)
+        {
+            QRectF r = info.item_delegate->getIconRect(info.style_option_view, info.model_index, icon_index++, true, 3, 4, 2);
+            if (info.overIcon(r))
+            {
+                QPointF tr = field_merged_code->getListView()->mapToGlobal(r.toRect().topRight());
+                QToolTip::showText(tr.toPoint(), "missing styles",
+                    field_merged_code, r.toRect(), 10000);
+            }
+        }
+
+        if (entry->token_parse_errors)
+        {
+            QRectF r = info.item_delegate->getIconRect(info.style_option_view, info.model_index, icon_index, true, 3, 4, 2);
+            if (info.overIcon(r))
+            {
+                QPointF tr = field_merged_code->getListView()->mapToGlobal(r.toRect().topRight());
+                QToolTip::showText(tr.toPoint(), "unparsable code (or missing description)", 
+                    field_merged_code, r.toRect(), 10000);
+            }
+        }
+    });
 
     field_shape->onItemMouseMove([this, &itemMouseMoveCallback](SearchableListItem& item, ListItemCallbackData& info)
     {
         itemMouseMoveCallback(field_shape, users_shape, item, info, "change shape", " products use this shape");
-
-        /*auto* field = field_shape;
-        QRectF r1 = info.item_delegate->getIconRect(info.style_option_view, info.model_index, 0);
-        QRectF r2 = info.item_delegate->getIconRect(info.style_option_view, info.model_index, 0, true, 2);
-        QRectF users_r = r1.adjusted(24, 0, 24, 0);
-
-        bool no_users = noUsers(users_shape, item.txt);
-
-        if (info.overIcon(r1))
-        {
-            QPointF tr = field->mapToGlobal(r1.toRect().topRight());
-            QToolTip::showText(tr.toPoint(), "change shape", field, r1.toRect(), 10000);
-
-            info.list_view->setCursor(Qt::PointingHandCursor);
-        }
-        else if (info.overRect(users_r))
-        {
-            QPointF tr = field->mapToGlobal(users_r.toRect().topRight());
-            QString users_txt = QString::number(users_shape[item.txt.toStdString()]) + " products use this shape";
-            QToolTip::showText(tr.toPoint(), users_txt, field, users_r.toRect(), 10000);
-        }
-        else if (no_users && info.overIcon(r2))
-        {
-            info.list_view->setCursor(Qt::PointingHandCursor);
-        }
-        else
-        {
-            info.list_view->unsetCursor();
-            QToolTip::hideText();
-        }*/
     });
 
     field_shape_col->onItemMouseMove([this, &itemMouseMoveCallback](SearchableListItem& item, ListItemCallbackData& info)
     {
         itemMouseMoveCallback(field_shape_col, users_shape_color, item, info, "change shape colour", " products use this shape colour");
-
-        /*auto* field = field_shape_col;
-        QRectF r1 = info.item_delegate->getIconRect(info.style_option_view, info.model_index, 0);
-        QRectF r2 = info.item_delegate->getIconRect(info.style_option_view, info.model_index, 0, true, 2);
-        QRectF users_r = r1.adjusted(24, 0, 24, 0);
-
-        bool no_users = noUsers(users_shape_color, item.txt);
-
-        if (info.overIcon(r1))
-        {
-            QPointF tr = field->mapToGlobal(r1.toRect().topRight());
-            QToolTip::showText(tr.toPoint(), "change shape colour", field_shape, r1.toRect(), 10000);
-
-            info.list_view->setCursor(Qt::PointingHandCursor);
-        }
-        else if (info.overRect(users_r))
-        {
-            QPointF tr = field->mapToGlobal(users_r.toRect().topRight());
-            QString users_txt = QString::number(users_shape_color[item.txt.toStdString()]) + " products use this shape colour";
-            QToolTip::showText(tr.toPoint(), users_txt, field, users_r.toRect(), 10000);
-        }
-        else if (no_users && info.overIcon(r2))
-        {
-            info.list_view->setCursor(Qt::PointingHandCursor);
-        }
-        else
-        {
-            info.list_view->unsetCursor();
-            QToolTip::hideText();
-        }*/
     });
 
     field_back_col->onItemMouseMove([this, &itemMouseMoveCallback](SearchableListItem& item, ListItemCallbackData& info)
@@ -764,11 +739,9 @@ PageOptions::PageOptions(QStatusBar* _statusBar, QWidget* parent)
     field_merged_code->onRadioToggled(toggleShowAllProducts);
     field_products->onRadioToggled(toggleShowAllProducts);
 
-    /// Entry selection
+    /// Painters
     field_merged_code->onItemPaint([this](SearchableListItem& item, QPainter* painter, ListItemCallbackData& info)
     {
-        QRectF r = info.item_delegate->getIconRect(info.style_option_view, info.model_index, 0, true);
-
         auto entry = item.as<OilTypeEntryPtr>();
         bool shape_assigned = composerGenerator.containsShapeInfo(entry->cell_shape->txt.c_str());
         bool shape_color_assigned = composerGenerator.containsShapeColor(entry->cell_shape_color->txt.c_str());
@@ -780,8 +753,18 @@ PageOptions::PageOptions(QStatusBar* _statusBar, QWidget* parent)
         // Draw item text
         info.drawRowText(painter, item.txt, 4);
 
+        int icon_index = 0;
         if (!valid)
-            info.drawIcon(painter, r.adjusted(-4, -4, 4, 4), warning_icon_data);
+        {
+            QRectF r = info.item_delegate->getIconRect(info.style_option_view, info.model_index, icon_index++, true, 3, 4, 2);
+            info.drawIcon(painter, r, warning_icon_red_data);
+        }
+
+        if (entry->token_parse_errors)
+        {
+            QRectF r2 = info.item_delegate->getIconRect(info.style_option_view, info.model_index, icon_index, true, 3, 4, 2);
+            info.drawIcon(painter, r2, warning_icon_yellow_data);
+        }
 
         return true;
     });
@@ -789,7 +772,7 @@ PageOptions::PageOptions(QStatusBar* _statusBar, QWidget* parent)
     /// Shape / Colours
     field_shape->onItemPaint([this](SearchableListItem& item, QPainter* painter, ListItemCallbackData& info)
     {
-        QRectF dataIconRect = info.item_delegate->getIconRect(info.style_option_view, info.model_index, 0);
+        QRectF dataIconRect = info.item_delegate->getIconRect(info.style_option_view, info.model_index, 0, false, 0, 0, 6);
         QRectF deleteIconRect = info.item_delegate->getIconRect(info.style_option_view, info.model_index, 0, true, 2);
         auto& users_map = users_shape;
 
@@ -836,7 +819,7 @@ PageOptions::PageOptions(QStatusBar* _statusBar, QWidget* parent)
 
     field_shape_col->onItemPaint([this](SearchableListItem& item, QPainter* painter, ListItemCallbackData& info)
     {
-        QRectF dataIconRect = info.item_delegate->getIconRect(info.style_option_view, info.model_index, 0);
+        QRectF dataIconRect = info.item_delegate->getIconRect(info.style_option_view, info.model_index, 0, false, 0, 0, 6);
         QRectF deleteIconRect = info.item_delegate->getIconRect(info.style_option_view, info.model_index, 0, true, 2);
         auto& users_map = users_shape_color;
 
@@ -965,7 +948,7 @@ PageOptions::PageOptions(QStatusBar* _statusBar, QWidget* parent)
 
     field_back_col->onItemPaint([this](SearchableListItem& item, QPainter* painter, ListItemCallbackData& info)
     {
-        QRectF dataIconRect = info.item_delegate->getIconRect(info.style_option_view, info.model_index, 0);
+        QRectF dataIconRect = info.item_delegate->getIconRect(info.style_option_view, info.model_index, 0, false, 0, 0, 6);
         QRectF deleteIconRect = info.item_delegate->getIconRect(info.style_option_view, info.model_index, 0, true, 2);
         auto& users_map = users_back_color;
 
@@ -1037,7 +1020,7 @@ PageOptions::PageOptions(QStatusBar* _statusBar, QWidget* parent)
 
     field_inner_back_col->onItemPaint([this](SearchableListItem& item, QPainter* painter, ListItemCallbackData& info)
     {
-        QRectF dataIconRect = info.item_delegate->getIconRect(info.style_option_view, info.model_index, 0);
+        QRectF dataIconRect = info.item_delegate->getIconRect(info.style_option_view, info.model_index, 0, false, 0, 0, 6);
         QRectF deleteIconRect = info.item_delegate->getIconRect(info.style_option_view, info.model_index, 0, true, 2);
         auto& users_map = users_inner_back_color;
 
@@ -1251,7 +1234,7 @@ PageOptions::PageOptions(QStatusBar* _statusBar, QWidget* parent)
         batch_dialog->open();
     });
 
-    // Detect token-description table cell edit
+    // Detect selected token-description table cell edit
     connect(&selected_product_description_model, &QStandardItemModel::dataChanged, this,
         [this](const QModelIndex& topLeft,
                const QModelIndex& bottomRight,
@@ -1263,6 +1246,28 @@ PageOptions::PageOptions(QStatusBar* _statusBar, QWidget* parent)
             //qDebug() << "Cell edited at row" << topLeft.row() << "column" << topLeft.column();
         }
     });
+    
+    setTokenColumnName(0, "Lubricant Type");
+    setTokenColumnName(1, "VISC / NLGI");
+    setTokenColumnName(2, "Base Oil / Thickener Type");
+    setTokenColumnName(3, "Additive Type /\nGrease Base Oil Type");
+    setTokenColumnName(4, "Grease Viscosity / Additive");
+    setTokenColumnName(5, "Additive Type 3 / Application");
+
+    // Detect setting token-description tables cell edit
+    token_tables = {ui->A_tbl, ui->B_tbl, ui->C_tbl, ui->D_tbl, ui->E_tbl, ui->F_tbl};
+
+    for (size_t i = 0; i < token_tables.size(); i++)
+    {
+        QStandardItemModel* model = description_maps[i].model;
+
+        connect(model, &QStandardItemModel::dataChanged, this,
+            [this](const QModelIndex& topLeft,
+            const QModelIndex& bottomRight,
+            const QVector<int>& roles)
+        {
+        });
+    }
 
     /*composerGenerator.setShapeInfo("Square ISO-VG32", ShapeInfo::fromPath(":/shapes/SQUARE.svg"));
     composerGenerator.setShapeInfo("Hexagon ISO-VG 68", ShapeInfo::fromPath(":/shapes/HEXAGON.svg"));
@@ -1584,7 +1589,7 @@ void PageOptions::onChangeSelectedMaterialEntry()
     field_inner_back_col->setCurrentItem(nullableFieldPropTxt(selected_entry->cell_inner_back_color->txt));
 
     recomposePage(getSelectedProduct(), selected_entry, true);
-    updateGenericCodeDescriptionTable();
+    updateSelectedProductTokenTable();
 }
 
 QString PageOptions::getSelectedProduct()
@@ -1673,6 +1678,7 @@ void PageOptions::rebuildDatabaseAndPopulateUI()
         QMessageBox::critical(this, "Error", "Unable to parse CSV headers. Please assign a new valid CSV.");
 
     repopulateLists();
+    scanForAllTokenParseErrors();
 }
 
 bool PageOptions::rebuildDatabase()
@@ -2013,60 +2019,144 @@ void PageOptions::setTokenDescription(int col, QString token, QString desc)
     description_maps[col].set(token, desc);
 }
 
-void PageOptions::onEditSelectedProductTokenDescription(int row, int col, QString txt)
+
+
+void PageOptions::onEditSelectedProductTokenDescription(int row, int col, QString new_txt)
 {
     // Map "column" in this case is actually the table row because of the way data is presented
     TokenDescriptionMap& map = description_maps[row];
 
+    std::vector<GenericCodeTokenInfo> existing_tokens = parseGenericCodeTokens(selected_entry->cell_generic_code->txt);
+    const GenericCodeTokenInfo& existing_token_info = existing_tokens[row];
+    std::string existing_token = existing_token_info.txt;
+    std::string existing_desc = existing_token_info.desc;
+
     // Which token name/description are we changing?
     QModelIndex token_model_index = selected_product_description_model.index(row, 0);
+    QModelIndex desc_model_index = selected_product_description_model.index(row, 1);
 
-    std::string token = token_model_index.data(Qt::DisplayRole).toString().toStdString();
+    std::string new_token = token_model_index.data(Qt::DisplayRole).toString().toStdString();
+    std::string new_desc = desc_model_index.data(Qt::DisplayRole).toString().toStdString();
 
     if (col == 0)
     {
-        // Changing token name
-        if (map.lookup.contains(txt.toStdString()))
+        if (new_txt.isEmpty())
         {
-            /// TODO: POPUP WARNING IF THIS WILL AFFECT OTHER PRODUCTS?
-
-            // A token name/description already exists, update it
-            std::string existing_desc = map.lookup.get(token);
-            map.lookup.remove(token);
-            map.lookup.set(txt.toStdString(), existing_desc);
-
+            // Removing this token
+            if (QMessageBox::warning(this, "Warning",
+                "Erasing token/description for all matching items. Are you sure?",
+                QMessageBox::StandardButton::Yes,
+                QMessageBox::StandardButton::Abort) == QMessageBox::StandardButton::Yes)
+            {
+                map.lookup.remove(existing_token);
+            }
         }
         else
         {
-            // Setup a new token/description with a dummy description
-            map.lookup.set(txt.toStdString(), "");
-        }
+            // Test to see if the entered token is parseable (without altering data)
+            {
+                bool parseable = false;
+                bool new_token_already_exists = map.lookup.contains(new_txt.toStdString());
 
+                // Temporarily erase existing token (since we're trying to change it to something else)
+                if (existing_token_info.found) map.lookup.remove(existing_token);
+
+                if (new_token_already_exists)
+                {
+                    std::vector<GenericCodeTokenInfo> parse_test = parseGenericCodeTokens(selected_entry->cell_generic_code->txt);
+                    parseable = (row < parse_test.size() && parse_test[row].txt == new_txt);
+                }
+                else
+                {
+                    map.lookup.set(new_txt.toStdString(), "dummy");
+                    map.sortByDescendingLength();
+                    std::vector<GenericCodeTokenInfo> parse_test = parseGenericCodeTokens(selected_entry->cell_generic_code->txt);
+                    parseable = (row < parse_test.size() && parse_test[row].txt == new_txt);
+                    map.lookup.remove(new_txt.toStdString());
+                }
+                // Recover temporarily erased existing token before proceeding
+                if (existing_token_info.found)
+                {
+                    map.lookup.set(existing_token, existing_desc);
+                    map.sortByDescendingLength();
+                }
+                if (!parseable)
+                {
+                    QMessageBox::critical(this, "Error", "Not a valid token for this generic code");
+                    updateSelectedProductTokenTable();
+                    return;
+                }
+            }
+
+            // Changing token name
+            if (map.lookup.contains(new_txt.toStdString()))
+            {
+                /* A token/description already exists with this name... How should we proceed?
+
+                 Example: Renaming "10W-40" to "10W" when 10W already has a description
+                 Message:
+
+                    A description already exists for the token "10W"
+
+                    - Click "Apply" to apply the new description to all other products using the same token
+                    - Click "Discard" to discard the new description and keep the existing description            */
+
+
+                    //int affect_count = 1;
+                    //QString warning = "Changing this token will affect " + QString::number(affect_count) + " other products. Proceed?";
+
+                QString warning = "A description already exists for the token \"" + QString(new_token.c_str()) + "\"\n"\
+                    "- Click \"Apply\" to overwrite the saved description\n"\
+                    "- Click \"Discard\" to switch to the saved description";
+
+                QMessageBox::StandardButton ret = QMessageBox::question(this, "Warning", warning,
+                    QMessageBox::StandardButton::Apply | QMessageBox::StandardButton::Discard | QMessageBox::StandardButton::Abort);
+
+                if (ret == QMessageBox::StandardButton::Apply)
+                {
+                    map.lookup.remove(existing_token);
+                    map.lookup.set(new_txt.toStdString(), new_desc);
+                    map.sortByDescendingLength();
+                }
+                else if (ret == QMessageBox::StandardButton::Discard)
+                {
+                    std::string existing_desc = map.lookup.get(new_token);
+                    map.lookup.remove(existing_token);
+                }
+            }
+            else
+            {
+                // Setup a new token/description with a dummy description
+                map.lookup.set(new_txt.toStdString(), existing_desc);
+                map.sortByDescendingLength();
+            }
+        }
     }
     else if (col == 1)
     {
         // Changing token description
         
-        if (!token.empty())
-            map.lookup[token] = txt.toStdString();
+        if (!new_token.empty())
+            map.lookup[new_token] = new_txt.toStdString();
     }
 
+    // Multiple materials might have been affected. Recheck all for parse errors
+    scanForAllTokenParseErrors();
 
-    updateGenericCodeDescriptionTable();
+    // Reparse "selected" generic code and repopulate table
+    updateSelectedProductTokenTable();
+
+    // Update tables in settings too
     populateTokenDescriptionModels();
     populateTokenDescriptionTables();
 }
 
-void PageOptions::updateGenericCodeDescriptionTable()
+std::vector<PageOptions::GenericCodeTokenInfo> PageOptions::parseGenericCodeTokens(const string_ex& generic_code)
 {
-    OilTypeEntryPtr entry = selected_entry;
-    const string_ex& generic_code = entry->cell_generic_code->txt;
     int cur_generic_substr_i = 0;
-
-    //selected_product_description_model.clear();
-    selected_product_description_model.removeRows(0, selected_product_description_model.rowCount());
-
     bool succesfully_finalized = false;
+
+    std::vector<GenericCodeTokenInfo> tokens;
 
     for (int i = 0; ; i++)
     {
@@ -2094,8 +2184,111 @@ void PageOptions::updateGenericCodeDescriptionTable()
             int remaining_len = generic_code.size() - cur_generic_substr_i;
             int max_match_len = std::min(remaining_len, static_cast<int>(lookup_tok.size()));
 
-            // Qt assert bug? "n <= d.size - pos". Resorting to std::string instead
-            //bool substr_matched = (generic_code.sliced(cur_generic_substr_i, max_match_len).toStdString() == lookup_tok);
+            bool substr_matched = generic_code.substr(cur_generic_substr_i, max_match_len).tolower() == lookup_tok.tolower();
+
+            bool proceeded_by_delim =
+                ((cur_generic_substr_i + lookup_tok.size()) == generic_code.size()) // Followed by null-terminator?
+                || (generic_code[cur_generic_substr_i + max_match_len] == '-');     // Followed by '-'?
+
+            if (substr_matched && proceeded_by_delim)
+            {
+                // Found a match, consume substring
+                cur_generic_substr_i += lookup_tok.size() + 1; // +1 for hyphen
+                matched_token = lookup_tok;
+                found_match = true;
+                break;
+            }
+        }
+
+
+        if (found_match)
+        {
+            GenericCodeTokenInfo token_info;
+            token_info.txt = matched_token;
+            token_info.desc = description_maps[i].lookup.get(matched_token).c_str();
+            token_info.found = true;
+
+            tokens.push_back(token_info);
+        }
+        else
+        {
+            if (!succesfully_finalized)
+            {
+                GenericCodeTokenInfo token_info;
+                token_info.found = false;
+                tokens.push_back(token_info);
+            }
+            break;
+        }
+
+        if (succesfully_finalized)
+            break;
+    }
+
+    return tokens;
+}
+
+void PageOptions::updateSelectedProductTokenTable()
+{
+    OilTypeEntryPtr entry = selected_entry;
+    const string_ex& generic_code = entry->cell_generic_code->txt;
+    //int cur_generic_substr_i = 0;
+
+    selected_product_description_model.removeRows(0, selected_product_description_model.rowCount());
+
+    std::vector<GenericCodeTokenInfo> parsed_tokens = parseGenericCodeTokens(generic_code);
+    for (size_t i = 0; i < parsed_tokens.size(); i++)
+    {
+        const GenericCodeTokenInfo& token_info = parsed_tokens[i];
+
+        QString name = description_maps[i].name;
+        QList<QStandardItem*> rowItems;
+
+        if (token_info.found)
+        {
+            rowItems.push_back(new QStandardItem(token_info.txt.c_str()));
+            rowItems.push_back(new QStandardItem(token_info.desc.c_str()));
+
+            selected_product_description_model.insertRow(i, rowItems);
+            selected_product_description_model.setHeaderData(i, Qt::Vertical, name);
+        }
+        else
+        {
+            rowItems.push_back(new QStandardItem("<no match>"));
+            rowItems.push_back(new QStandardItem("<ended parsing>"));
+
+            selected_product_description_model.insertRow(i, rowItems);
+            selected_product_description_model.setHeaderData(i, Qt::Vertical, name);
+        }
+    }
+
+    /*bool succesfully_finalized = false;
+
+    for (int i = 0; ; i++)
+    {
+        if (i >= description_maps.size())
+            break;
+
+        QString name = description_maps[i].name; // e.g. "Application", "Grease Consistency"
+
+        std::string matched_token;
+
+        auto lookup = description_maps[i].lookup;
+        bool found_match = false;
+
+        // Greedy algorithm for matching next substring
+        for (size_t j = 0; j < lookup.size(); j++)
+        {
+            // Do we have any tokens left to read?
+            if (cur_generic_substr_i >= generic_code.size())
+            {
+                succesfully_finalized = true;
+                break;
+            }
+
+            const string_ex& lookup_tok = lookup.at(j).first;
+            int remaining_len = generic_code.size() - cur_generic_substr_i;
+            int max_match_len = std::min(remaining_len, static_cast<int>(lookup_tok.size()));
 
             bool substr_matched = generic_code.substr(cur_generic_substr_i, max_match_len).tolower() == lookup_tok.tolower();
 
@@ -2109,11 +2302,6 @@ void PageOptions::updateGenericCodeDescriptionTable()
                 cur_generic_substr_i += lookup_tok.size() + 1; // +1 for hyphen
                 matched_token = lookup_tok;
                 found_match = true;
-
-                // Did this match finalize the entire product description?
-                // If so, break out nested loop
-                //if (cur_generic_substr_i >= )
-
                 break;
             }
         }
@@ -2134,8 +2322,6 @@ void PageOptions::updateGenericCodeDescriptionTable()
         }
         else
         {
-            //prematurely_ended_parsing = true;
-
             rowItems.push_back(new QStandardItem("<no match>"));
             rowItems.push_back(new QStandardItem("<ended parsing>"));
 
@@ -2144,23 +2330,7 @@ void PageOptions::updateGenericCodeDescriptionTable()
 
             break;
         }
-        /*else
-        {
-            QList<QStandardItem*> rowItems;
-
-            QStandardItem* missing_token_item = new QStandardItem(0);
-            QStandardItem* missing_desc_item = new QStandardItem(0);
-
-            missing_token_item->setFlags(Qt::NoItemFlags);
-            missing_desc_item->setFlags(Qt::NoItemFlags);
-
-            rowItems.push_back(missing_token_item);
-            rowItems.push_back(missing_desc_item);
-
-            selected_product_description_model.insertRow(i, rowItems);
-            selected_product_description_model.setHeaderData(i, Qt::Vertical, name);
-        }*/
-    }
+    }*/
 
     selected_product_description_model.setHeaderData(0, Qt::Horizontal, "Token");
     selected_product_description_model.setHeaderData(1, Qt::Horizontal, "Description");
@@ -2169,10 +2339,6 @@ void PageOptions::updateGenericCodeDescriptionTable()
     ui->description_tbl->resizeRowsToContents();
     ui->description_tbl->resizeColumnsToContents();
     ui->description_tbl->setColumnWidth(0, 80);
-    //ui->description_tbl->horizontalHeader()->setSectionResizeMode(QHeaderView::setStretchLastSection);
-
-    //ui->description_tbl->resizeRowsToContents();
-    //ui->description_tbl->stretch
 
     for (int row = 0; row < ui->description_tbl->model()->rowCount(); ++row)
     {
@@ -2180,6 +2346,34 @@ void PageOptions::updateGenericCodeDescriptionTable()
         if (currentHeight < 25)
             ui->description_tbl->setRowHeight(row, 25);
     }
+}
+
+inline void PageOptions::checkForParseError(OilTypeEntryPtr entry)
+{
+    auto parsed_tokens = parseGenericCodeTokens(entry->cell_generic_code->txt);
+
+    bool any_missing_descriptions = false;
+    for (auto info : parsed_tokens)
+    {
+        if (info.desc.empty())
+        {
+            any_missing_descriptions = true;
+            break;
+        }
+    }
+
+    entry->token_parse_errors = 
+        parsed_tokens.empty() || 
+        !parsed_tokens.back().found || 
+        any_missing_descriptions; // Treat no description as a parse error
+}
+
+void PageOptions::scanForAllTokenParseErrors()
+{
+    for (const auto& [merged_code, entry] : merged_code_entries)
+        checkForParseError(entry);
+
+    field_merged_code->repaint();
 }
 
 
@@ -2203,12 +2397,15 @@ void PageOptions::populateTokenDescriptionTables()
         table->setModel(model);
     };
 
-    prepare_table(ui->A_tbl, description_maps[0].model);
-    prepare_table(ui->B_tbl, description_maps[1].model);
-    prepare_table(ui->C_tbl, description_maps[2].model);
-    prepare_table(ui->D_tbl, description_maps[3].model);
-    prepare_table(ui->E_tbl, description_maps[4].model);
-    prepare_table(ui->F_tbl, description_maps[5].model);
+    for (size_t i = 0; i < token_tables.size(); i++)
+        prepare_table(token_tables[i], description_maps[i].model);
+
+    //prepare_table(ui->A_tbl, description_maps[0].model);
+    //prepare_table(ui->B_tbl, description_maps[1].model);
+    //prepare_table(ui->C_tbl, description_maps[2].model);
+    //prepare_table(ui->D_tbl, description_maps[3].model);
+    //prepare_table(ui->E_tbl, description_maps[4].model);
+    //prepare_table(ui->F_tbl, description_maps[5].model);
 }
 
 void PageOptions::countStyleUsers()

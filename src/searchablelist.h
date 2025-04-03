@@ -425,6 +425,8 @@ public:
     QSize sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const override;
     void paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const override;
 
+    bool eventFilter(QObject* obj, QEvent* event);
+
     bool editorEvent(
         QEvent* event, 
         QAbstractItemModel* model,
@@ -436,7 +438,10 @@ public:
         const QModelIndex& index,
         int iconIndex,
         bool from_end=false,
-        qreal padding=0) const;
+        qreal icon_margin=0,
+        qreal icon_spacing=0,
+        qreal start_spacing=4,
+        qreal overrideSide=-1) const;
 
     QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem&, const QModelIndex& index) const;
 
@@ -467,55 +472,6 @@ public:
 
             const SearchableListItem& item = index.data(Qt::UserRole).value<SearchableListItem>();
         }
-    }
-
-    bool eventFilter(QObject* obj, QEvent* event) 
-    {
-        QWidget* widget = qobject_cast<QWidget*>(obj);
-
-        if (event->type() == QEvent::KeyPress) {
-            QKeyEvent* keyEvent = static_cast<QKeyEvent*>(event);
-            if (keyEvent->key() == Qt::Key_Return || keyEvent->key() == Qt::Key_Enter) {
-                int a = 5;
-            }
-        }
-        if (!widget || widget != current_editor)
-            return false;
-
-        QWidget* editorWidget = qobject_cast<QWidget*>(obj);
-        QAbstractItemView* view = qobject_cast<QAbstractItemView*>(this->parent()); // or from signal context
-
-        if (editorWidget && view) {
-            QWidget* ancestor = editorWidget->parentWidget();
-            bool belongsToView = false;
-
-            while (ancestor) {
-                if (ancestor == view || ancestor == view->viewport()) {
-                    belongsToView = true;
-                    break;
-                }
-                ancestor = ancestor->parentWidget();
-            }
-
-            if (!belongsToView) {
-                qDebug() << "Editor does NOT belong to view. Editor:" << editorWidget
-                    << " View:" << view;
-                return true; // Block or handle manually
-            }
-        }
-
-        if (QLineEdit* editor = qobject_cast<QLineEdit*>(obj)) 
-        {
-            if (event->type() == QEvent::KeyPress) {
-                QKeyEvent* keyEvent = static_cast<QKeyEvent*>(event);
-                if (keyEvent->key() == Qt::Key_Return || keyEvent->key() == Qt::Key_Enter) {
-                    emit commitData(editor);
-                    emit closeEditor(editor, QAbstractItemDelegate::SubmitModelCache);
-                    return true;  // prevent further propagation
-                }
-            }
-        }
-        return QStyledItemDelegate::eventFilter(obj, event);
     }
 
 signals:
@@ -715,6 +671,7 @@ public:
     }
 
     void refresh();
+    void repaint();
 
     /*SearchableListItem *findItem(QString txt)
     {
@@ -741,6 +698,8 @@ public:
         editor_margin_left = left;
         editor_margin_right = right;
     }
+
+    const SearchableListView* getListView() const;
 
 private:
 

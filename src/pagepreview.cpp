@@ -256,7 +256,9 @@ QImage PagePreview::composeTag(const ComposerInfo& info, QSize size)
     // Draw tag
     //{
         // Create Coloured Tag Box Area
-        QGraphicsRectItem *box = sub_scene.addRect(rect, QPen(Qt::NoPen), QBrush(info.tag_background_color));
+        QGraphicsRectItem *box = sub_scene.addRect(rect, QPen(Qt::NoPen), 
+            info.tag_background_color.isValid() ? QBrush(info.tag_background_color) : Qt::NoBrush
+        );
         
         // Load Shape Item
         //shape_piximap.load("C:/Git/C++/Projects/SonaeLabelMaker/shapes/test_svg.svg");
@@ -286,12 +288,21 @@ QImage PagePreview::composeTag(const ComposerInfo& info, QSize size)
         fitItemSize(shape_item, shape_body_rect.size());
         centerItem(shape_item, rect);
 
+
         qreal inner_box_padding = rect.width() * 0.03;
         QRectF inner_rect = getScaledRect(shape_item).adjusted(
             -inner_box_padding, -inner_box_padding,
             inner_box_padding, inner_box_padding
         );
-        QGraphicsRectItem* inner_box = sub_scene.addRect(inner_rect, QPen(Qt::NoPen), QBrush(info.tag_inner_background_color));
+        bool isValid = info.tag_inner_background_color.isValid();
+        QGraphicsRectItem* inner_box = sub_scene.addRect(
+            inner_rect, 
+            Qt::NoPen, 
+            isValid ? 
+                QBrush(info.tag_inner_background_color) :
+                Qt::NoBrush
+        );
+
         //inner_box->setPos()
 
         inner_box->setParentItem(box);

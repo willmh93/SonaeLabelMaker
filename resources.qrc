@@ -1,49 +1,18 @@
 <RCC>
     <qresource prefix="/">
         <file>res/logo.png</file>
-        <file>res/styles.qss</file>
+        <file>res/logo2.jpg</file>
         <file>res/logo.svg</file>
-        <file>res/icon_print.svg</file>
         <file>res/sonae_icon.png</file>
-        <file>src/colorpicker.qml</file>
-        <file>shapes/BOW_TIE.svg</file>
-        <file>shapes/CAUTION.svg</file>
-        <file>shapes/CIRCLE.svg</file>
-        <file>shapes/CROSS_V.svg</file>
-        <file>shapes/DIAMOND.svg</file>
-        <file>shapes/ELIPSE.svg</file>
-        <file>shapes/GREASE_GUN.svg</file>
-        <file>shapes/GREASE_GUN_NOT.svg</file>
-        <file>shapes/HEXAGON.svg</file>
-        <file>shapes/HOURGLASS_V.svg</file>
-        <file>shapes/L_SHAPE.svg</file>
-        <file>shapes/LIGHTNING.svg</file>
-        <file>shapes/NUT&amp;BOLT.svg</file>
-        <file>shapes/OCTAGON.svg</file>
-        <file>shapes/PENTAGON.svg</file>
-        <file>shapes/RECTANCLE_H.svg</file>
-        <file>shapes/RECTANCLE_V.svg</file>
-        <file>shapes/SEMICIRCLE_B.svg</file>
-        <file>shapes/SEMICIRCLE_L.svg</file>
-        <file>shapes/SEMICIRCLE_R.svg</file>
-        <file>shapes/SEMICIRCLE_T.svg</file>
-        <file>shapes/SPRAY_CAN.svg</file>
-        <file>shapes/SQUARE.svg</file>
-        <file>shapes/STAR.svg</file>
-        <file>shapes/SVG Sample.svg</file>
-        <file>shapes/TEARDROP.svg</file>
-        <file>shapes/three SVG.svg</file>
-        <file>shapes/three ungrouped svg.svg</file>
-        <file>shapes/PARALLELOGRAM.svg</file>
-        <file>shapes/TRIANGLE.svg</file>
+        <file>res/icon_print.svg</file>
         <file>res/icon_find.svg</file>
         <file>res/icon_save.svg</file>
         <file>res/icon_unbox.svg</file>
         <file>res/code128.ttf</file>
         <file>res/arial_bold.ttf</file>
-        <file>res/logo2.jpg</file>
         <file>res/warning.svg</file>
         <file>res/paperclip.svg</file>
-        <file>res/splitter_handle.png</file>
+        <file>res/bin.svg</file>
+        <file>res/segoe_ui.ttf</file>
     </qresource>
 </RCC>

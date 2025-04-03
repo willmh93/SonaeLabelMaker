@@ -331,6 +331,8 @@ struct OilTypeEntry
 
     std::vector<CSVCellPtr> vendor_cells;
 
+    bool token_parse_errors = false;
+
     //bool detected_userflag_vendor_notdefined = false;
 
     bool missingData()
@@ -462,6 +464,8 @@ struct TokenDescriptionMap
         {
             auto& item = lookup.at(i);
             QString name = item.first.c_str();
+            if (name.isEmpty()) continue;
+
             QString desc = item.second.c_str();
             info[name] = desc;
         }
@@ -473,6 +477,8 @@ struct TokenDescriptionMap
         for (auto it = info.constBegin(); it != info.constEnd(); ++it)
         {
             QString name = it.key();
+            if (name.isEmpty()) continue;
+
             QString desc = it.value().toString();
             lookup[name.toStdString()] = desc.toStdString();
         }
@@ -515,7 +521,8 @@ class PageOptions : public QWidget
     Q_OBJECT;
 
     // Icon data
-    QByteArray warning_icon_data;
+    QByteArray warning_icon_red_data;
+    QByteArray warning_icon_yellow_data;
     QByteArray delete_inactive_data;
     QByteArray delete_active_data;
 
@@ -586,13 +593,26 @@ class PageOptions : public QWidget
 
     // Token-Description maps
     std::vector<TokenDescriptionMap> description_maps;
+    std::vector<QTableView*> token_tables;
     void setTokenColumnName(int col, QString name);
     void setTokenDescription(int col, QString token, QString desc);
+
 
     // Selected product token description table model
     SelectedProductDescriptionModel selected_product_description_model;
     void onEditSelectedProductTokenDescription(int row, int col, QString txt);
-    void updateGenericCodeDescriptionTable();
+
+    struct GenericCodeTokenInfo
+    {
+        bool found;
+        std::string txt;
+        std::string desc;
+    };
+
+    std::vector<GenericCodeTokenInfo> parseGenericCodeTokens(const string_ex &generic_code);
+    void updateSelectedProductTokenTable();
+    void checkForParseError(OilTypeEntryPtr entry);
+    void scanForAllTokenParseErrors();
 
     // Settings "all tables" models
     void populateTokenDescriptionModels();
