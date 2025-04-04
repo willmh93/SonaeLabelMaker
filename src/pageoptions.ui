@@ -246,6 +246,30 @@ using active page template</string>
           </property>
          </widget>
         </item>
+        <item>
+         <widget class="QPushButton" name="help_btn">
+          <property name="minimumSize">
+           <size>
+            <width>32</width>
+            <height>32</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>32</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <property name="font">
+           <font>
+            <pointsize>12</pointsize>
+           </font>
+          </property>
+          <property name="text">
+           <string>?</string>
+          </property>
+         </widget>
+        </item>
        </layout>
       </widget>
      </item>
@@ -608,14 +632,48 @@ QTabWidget {
                <number>5</number>
               </property>
               <item>
-               <widget class="QLabel" name="label">
-                <property name="text">
-                 <string>Token Definitions:</string>
+               <layout class="QHBoxLayout" name="horizontalLayout_4">
+                <property name="topMargin">
+                 <number>0</number>
                 </property>
-               </widget>
+                <item>
+                 <widget class="QLabel" name="label">
+                  <property name="text">
+                   <string>Token Definitions (matched in the order shown):</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <spacer name="horizontalSpacer_3">
+                  <property name="orientation">
+                   <enum>Qt::Orientation::Horizontal</enum>
+                  </property>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>40</width>
+                    <height>20</height>
+                   </size>
+                  </property>
+                 </spacer>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="add_row_btn">
+                  <property name="text">
+                   <string>New Row</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="remove_row_btn">
+                  <property name="text">
+                   <string>Remove Row</string>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
               </item>
               <item>
-               <widget class="QTabWidget" name="tabWidget_2">
+               <widget class="QTabWidget" name="token_defs_tabs">
                 <property name="styleSheet">
                  <string notr="true">QTableView {
 	border: none;
@@ -652,8 +710,17 @@ QTabWidget {
                     <property name="styleSheet">
                      <string notr="true"/>
                     </property>
+                    <property name="alternatingRowColors">
+                     <bool>true</bool>
+                    </property>
+                    <property name="selectionBehavior">
+                     <enum>QAbstractItemView::SelectionBehavior::SelectRows</enum>
+                    </property>
                     <attribute name="horizontalHeaderStretchLastSection">
                      <bool>true</bool>
+                    </attribute>
+                    <attribute name="verticalHeaderVisible">
+                     <bool>false</bool>
                     </attribute>
                    </widget>
                   </item>
@@ -678,8 +745,17 @@ QTabWidget {
                   </property>
                   <item>
                    <widget class="QTableView" name="B_tbl">
+                    <property name="alternatingRowColors">
+                     <bool>true</bool>
+                    </property>
+                    <property name="selectionBehavior">
+                     <enum>QAbstractItemView::SelectionBehavior::SelectRows</enum>
+                    </property>
                     <attribute name="horizontalHeaderStretchLastSection">
                      <bool>true</bool>
+                    </attribute>
+                    <attribute name="verticalHeaderVisible">
+                     <bool>false</bool>
                     </attribute>
                    </widget>
                   </item>
@@ -704,8 +780,17 @@ QTabWidget {
                   </property>
                   <item>
                    <widget class="QTableView" name="C_tbl">
+                    <property name="alternatingRowColors">
+                     <bool>true</bool>
+                    </property>
+                    <property name="selectionBehavior">
+                     <enum>QAbstractItemView::SelectionBehavior::SelectRows</enum>
+                    </property>
                     <attribute name="horizontalHeaderStretchLastSection">
                      <bool>true</bool>
+                    </attribute>
+                    <attribute name="verticalHeaderVisible">
+                     <bool>false</bool>
                     </attribute>
                    </widget>
                   </item>
@@ -730,8 +815,17 @@ QTabWidget {
                   </property>
                   <item>
                    <widget class="QTableView" name="D_tbl">
+                    <property name="alternatingRowColors">
+                     <bool>true</bool>
+                    </property>
+                    <property name="selectionBehavior">
+                     <enum>QAbstractItemView::SelectionBehavior::SelectRows</enum>
+                    </property>
                     <attribute name="horizontalHeaderStretchLastSection">
                      <bool>true</bool>
+                    </attribute>
+                    <attribute name="verticalHeaderVisible">
+                     <bool>false</bool>
                     </attribute>
                    </widget>
                   </item>
@@ -756,8 +850,17 @@ QTabWidget {
                   </property>
                   <item>
                    <widget class="QTableView" name="E_tbl">
+                    <property name="alternatingRowColors">
+                     <bool>true</bool>
+                    </property>
+                    <property name="selectionBehavior">
+                     <enum>QAbstractItemView::SelectionBehavior::SelectRows</enum>
+                    </property>
                     <attribute name="horizontalHeaderStretchLastSection">
                      <bool>true</bool>
+                    </attribute>
+                    <attribute name="verticalHeaderVisible">
+                     <bool>false</bool>
                     </attribute>
                    </widget>
                   </item>
@@ -782,8 +885,17 @@ QTabWidget {
                   </property>
                   <item>
                    <widget class="QTableView" name="F_tbl">
+                    <property name="alternatingRowColors">
+                     <bool>true</bool>
+                    </property>
+                    <property name="selectionBehavior">
+                     <enum>QAbstractItemView::SelectionBehavior::SelectRows</enum>
+                    </property>
                     <attribute name="horizontalHeaderStretchLastSection">
                      <bool>true</bool>
+                    </attribute>
+                    <attribute name="verticalHeaderVisible">
+                     <bool>false</bool>
                     </attribute>
                    </widget>
                   </item>

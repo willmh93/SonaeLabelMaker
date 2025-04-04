@@ -73,6 +73,8 @@ void loadFile(const char *accept, FileDataCallback callback, void *context)
     val input = document.call<val>("createElement", std::string("input"));
     input.set("type", "file");
     input.set("style", "display:none");
+
+    qDebug() << "openFileDialog: " << accept;
     input.set("accept", val(accept));
 
     // Set JavaScript onchange callback which will be called on file(s) selected,
@@ -91,10 +93,12 @@ void loadFile(const char *accept, FileDataCallback callback, void *context)
 }
 
 
-extern "C" EMSCRIPTEN_KEEPALIVE void openFileDialog()
+extern "C" EMSCRIPTEN_KEEPALIVE void openFileDialog(QString filter)
 {
     void *context = nullptr;
-    loadFile("*", [](void *context, char *contentPointer, size_t contentSize, const char *fileName)
+    qDebug() << "openFileDialog: " << filter.toStdString().c_str();
+
+    loadFile(filter.toStdString().c_str(), [](void* context, char* contentPointer, size_t contentSize, const char* fileName)
     {
         QString fileNameStr = QString::fromUtf8(fileName);
         QByteArray fileData(reinterpret_cast<const char*>(contentPointer), contentSize);
@@ -217,10 +221,11 @@ void FileManager::doLoad(
     QString filter,
     std::function<void(const QString& filename, const QByteArray& data)> callback)
 {
+    filter.replace("*", "");
     FileManager::current_instance = this;
     file_recieved_callback = callback;
 
-    openFileDialog();
+    openFileDialog(filter);
 }
 
 void FileManager::doSave(

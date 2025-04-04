@@ -7,7 +7,7 @@
 #include <QStyle>
 #include "pagepreview.h"
 #include "pageoptions.h"
-#include "instructions.h"
+
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -118,12 +118,12 @@ MainWindow::MainWindow(QWidget *parent)
     setCentralWidget(mainSplitter);
     //qDebug() << "Widget Effective Style:" << pageOptions->style()->objectName();
 
-    QTimer timer;
-    timer.singleShot(1000, [this]() {
-        Instructions* instructions = new Instructions(this);
-        instructions->setFixedSize(instructions->size());
-        instructions->show();
-    });
+    //QTimer timer;
+    //timer.singleShot(1000, [this]() {
+    //    Instructions* instructions = new Instructions(this);
+    //    instructions->setFixedSize(instructions->size());
+    //    instructions->show();
+    //});
 }
 
 MainWindow::~MainWindow() {}

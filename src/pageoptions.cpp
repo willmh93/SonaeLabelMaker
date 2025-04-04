@@ -7,6 +7,7 @@
 #include <string>
 #include <algorithm>
 
+#include "instructions.h"
 #include "pageoptions.h"
 #include "ui_pageoptions.h"
 #include "fieldtoolbar.h"
@@ -448,7 +449,7 @@ PageOptions::PageOptions(QStatusBar* _statusBar, QWidget* parent)
 
     auto changeShapeItem = [this](SearchableListItem& item)
     {
-        svg_picker->doLoad("Select SVG File", "SVG File (*.svg);", [this, item](
+        svg_picker->doLoad("Select SVG File", "*.svg", [this, item](
             const QString& filename,
             const QByteArray& data)
         {
@@ -1131,7 +1132,7 @@ PageOptions::PageOptions(QStatusBar* _statusBar, QWidget* parent)
     // Load Project button
     connect(ui->load_btn, &QPushButton::clicked, this, [this]()
     {
-        project_file_manager->doLoad("Select Project File", "Project File (*.json);",
+        project_file_manager->doLoad("Select Project File", "*.json",
             [this](const QString& filename, const QByteArray& data)
         {
             selected_entry = nullptr;
@@ -1234,6 +1235,14 @@ PageOptions::PageOptions(QStatusBar* _statusBar, QWidget* parent)
         batch_dialog->open();
     });
 
+    // Help button
+    connect(ui->help_btn, &QPushButton::clicked, this, [this]()
+    {
+        Instructions* instructions = new Instructions(this);
+        instructions->setFixedSize(instructions->size());
+        instructions->show();
+    });
+
     // Detect selected token-description table cell edit
     connect(&selected_product_description_model, &QStandardItemModel::dataChanged, this,
         [this](const QModelIndex& topLeft,
@@ -1247,6 +1256,7 @@ PageOptions::PageOptions(QStatusBar* _statusBar, QWidget* parent)
         }
     });
     
+    description_maps.resize(6);
     setTokenColumnName(0, "Lubricant Type");
     setTokenColumnName(1, "VISC / NLGI");
     setTokenColumnName(2, "Base Oil / Thickener Type");
@@ -1259,15 +1269,54 @@ PageOptions::PageOptions(QStatusBar* _statusBar, QWidget* parent)
 
     for (size_t i = 0; i < token_tables.size(); i++)
     {
-        QStandardItemModel* model = description_maps[i].model;
+        QStandardItemModel* model = description_maps[i].model.get();
 
         connect(model, &QStandardItemModel::dataChanged, this,
-            [this](const QModelIndex& topLeft,
+            [this, i](const QModelIndex& topLeft,
             const QModelIndex& bottomRight,
             const QVector<int>& roles)
         {
+            onEditSettingsProductTokenDescription(i, topLeft.row(), topLeft.column(), topLeft.data().toString());
         });
     }
+
+    connect(ui->add_row_btn, &QPushButton::clicked, this, [this]()
+    {
+        int table_index = ui->token_defs_tabs->currentIndex();
+        TokenDescriptionMap& map = description_maps[table_index];
+        QStandardItemModel* model = map.model.get();
+        QTableView* table = token_tables[table_index];
+
+        map.lookup.push_back(std::pair<std::string, std::string>("", ""));
+        
+        QList<QStandardItem*> newRow;
+        newRow.push_back(new QStandardItem(""));
+        newRow.push_back(new QStandardItem(""));
+        
+        model->appendRow(newRow);
+        auto tokenIndex = model->index(map.lookup.size() - 1, 0);
+        table->setCurrentIndex(tokenIndex);
+        table->edit(tokenIndex);
+    });
+
+    connect(ui->remove_row_btn, &QPushButton::clicked, this, [this]()
+    {
+        int table_index = ui->token_defs_tabs->currentIndex();
+        TokenDescriptionMap& map = description_maps[table_index];
+        QStandardItemModel* model = map.model.get();
+        QTableView* table = token_tables[table_index];
+
+        auto currentIndex = table->currentIndex();
+        if (currentIndex.isValid())
+        {
+            int row = currentIndex.row();
+            map.lookup.erase(map.lookup.begin() + row);
+            model->removeRow(row);
+
+            scanForAllTokenParseErrors();
+            updateSelectedProductTokenTable();
+        }
+    });
 
     /*composerGenerator.setShapeInfo("Square ISO-VG32", ShapeInfo::fromPath(":/shapes/SQUARE.svg"));
     composerGenerator.setShapeInfo("Hexagon ISO-VG 68", ShapeInfo::fromPath(":/shapes/HEXAGON.svg"));
@@ -2005,16 +2054,16 @@ void PageOptions::repopulateLists(
 
 void PageOptions::setTokenColumnName(int col, QString name)
 {
-    if (col >= description_maps.size())
-        description_maps.resize(col + 1);
+    //if (col >= description_maps.size())
+    //    description_maps.resize(col + 1);
     
     description_maps[col].name = name;
 }
 
 void PageOptions::setTokenDescription(int col, QString token, QString desc)
 {
-    if (col >= description_maps.size())
-        description_maps.resize(col + 1);
+    //if (col >= description_maps.size())
+    //    description_maps.resize(col + 1);
     
     description_maps[col].set(token, desc);
 }
@@ -2149,6 +2198,37 @@ void PageOptions::onEditSelectedProductTokenDescription(int row, int col, QStrin
     // Update tables in settings too
     populateTokenDescriptionModels();
     populateTokenDescriptionTables();
+}
+
+void PageOptions::onEditSettingsProductTokenDescription(int table_index, int row, int col, QString txt)
+{
+    TokenDescriptionMap& map = description_maps[table_index];
+    std::string existing_token = map.lookup.at(row).first;
+    std::string existing_desc = map.lookup.at(row).second;
+
+    if (col == 0)
+    {
+        map.lookup.remove(existing_token);
+        map.lookup.set(txt.toStdString(), existing_desc);
+
+        map.sortByDescendingLength();
+    }
+    else if (col == 1)
+    {
+        map.lookup.set(existing_token, txt.toStdString());
+    }
+
+    map.populateModel();
+    map.model->setHeaderData(0, Qt::Horizontal, "Token");
+    map.model->setHeaderData(1, Qt::Horizontal, "Description");
+
+    if (selected_entry)
+    {
+        // Reparse "selected" generic code and repopulate table
+        updateSelectedProductTokenTable();
+    }
+
+    scanForAllTokenParseErrors();
 }
 
 std::vector<PageOptions::GenericCodeTokenInfo> PageOptions::parseGenericCodeTokens(const string_ex& generic_code)
@@ -2390,11 +2470,11 @@ void PageOptions::populateTokenDescriptionModels()
 
 void PageOptions::populateTokenDescriptionTables()
 {
-    auto prepare_table = [](QTableView* table, QStandardItemModel* model)
+    auto prepare_table = [](QTableView* table, std::shared_ptr<QStandardItemModel> model)
     {
         model->setHeaderData(0, Qt::Horizontal, "Token");
         model->setHeaderData(1, Qt::Horizontal, "Description");
-        table->setModel(model);
+        table->setModel(model.get());
     };
 
     for (size_t i = 0; i < token_tables.size(); i++)
@@ -2505,16 +2585,17 @@ void PageOptions::deserialize(const QByteArray& json)
     {
         QJsonObject descriptionMapsObj = jsonObj["description_maps"].toObject();
 
-        description_maps.clear(); // Todo: Add warning about potential unsaved changes?
-        description_maps.resize(descriptionMapsObj.size());
+        //description_maps.clear(); // Todo: Add warning about potential unsaved changes?
+        //description_maps.resize(descriptionMapsObj.size());
 
+        //int i = 0;
         for (auto it = descriptionMapsObj.begin(); it != descriptionMapsObj.end(); ++it)
         {
-            TokenDescriptionMap map;
             QJsonObject mapObj = it->toObject();
 
             // Deserialize column index/name
             int column = mapObj["column"].toInt();
+            TokenDescriptionMap& map = description_maps[column];
             QJsonObject mapDataObj = mapObj["data"].toObject();
 
             // Deserialize map name/entries
@@ -2522,7 +2603,8 @@ void PageOptions::deserialize(const QByteArray& json)
             map.deserialize(mapDataObj);
 
             // Sorted place into map list
-            description_maps[column] = map;
+            //description_maps[column] = map;
+            //i++;
         }
         populateTokenDescriptionModels();
         populateTokenDescriptionTables();

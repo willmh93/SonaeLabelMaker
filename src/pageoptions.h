@@ -422,11 +422,11 @@ struct TokenDescriptionMap
 {
     QString name;
     flat_map<string_ex, string_ex> lookup;
-    QStandardItemModel* model = nullptr;
+    std::shared_ptr<QStandardItemModel> model;
 
     TokenDescriptionMap()
     {
-        model = new QStandardItemModel();
+        model = std::make_shared<QStandardItemModel>();
     }
 
     void set(QString token, QString decription)
@@ -601,6 +601,7 @@ class PageOptions : public QWidget
     // Selected product token description table model
     SelectedProductDescriptionModel selected_product_description_model;
     void onEditSelectedProductTokenDescription(int row, int col, QString txt);
+    void onEditSettingsProductTokenDescription(int table_index, int row, int col, QString txt);
 
     struct GenericCodeTokenInfo
     {
