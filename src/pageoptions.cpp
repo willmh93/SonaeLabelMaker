@@ -681,6 +681,9 @@ PageOptions::PageOptions(QStatusBar* _statusBar, QWidget* parent)
     // Rename Item callbacks
     connect(field_shape, &SearchableList::itemModified, this, [this](SearchableListItem& item)
     {
+        if (item.txt == item.old_txt)
+            return;
+
         bool already_exists = composerGenerator.containsShapeInfo(item.txt);
         if (!already_exists)
             composerGenerator.replaceShapeInfo(item.old_txt, item.txt);
@@ -688,11 +691,21 @@ PageOptions::PageOptions(QStatusBar* _statusBar, QWidget* parent)
         repopulateLists(false, false, true, false, false, false, false);
 
         if (already_exists)
-            QMessageBox::critical(this, "Error", "A shape already exists with this name");
+        {
+            QMessageBox* box = new QMessageBox(QMessageBox::Critical,
+                "Error",
+                "A shape already exists with this name",
+                QMessageBox::NoButton,
+                this);
+            box->show();
+        }
     });
 
     connect(field_shape_col, &SearchableList::itemModified, this, [this](SearchableListItem& item)
     {
+        if (item.txt == item.old_txt)
+            return;
+
         bool already_exists = composerGenerator.containsShapeColor(item.txt);
         if (!already_exists)
             composerGenerator.replaceShapeColor(item.old_txt, item.txt);
@@ -700,11 +713,21 @@ PageOptions::PageOptions(QStatusBar* _statusBar, QWidget* parent)
         repopulateLists(false, false, false, true, false, false, false);
 
         if (already_exists)
-            QMessageBox::critical(this, "Error", "A shape colour already exists with this name");
+        {
+            QMessageBox* box = new QMessageBox(QMessageBox::Critical,
+                "Error",
+                "A shape colour already exists with this name",
+                QMessageBox::NoButton,
+                this);
+            box->show();
+        }
     });
 
     connect(field_back_col, &SearchableList::itemModified, this, [this](SearchableListItem& item)
     {
+        if (item.txt == item.old_txt)
+            return;
+
         bool already_exists = composerGenerator.containsBackColor(item.txt);
         if (!already_exists)
             composerGenerator.replaceBackColor(item.old_txt, item.txt);
@@ -712,11 +735,21 @@ PageOptions::PageOptions(QStatusBar* _statusBar, QWidget* parent)
         repopulateLists(false, false, false, false, true, false, false);
 
         if (already_exists)
-            QMessageBox::critical(this, "Error", "A background colour already exists with this name");
+        {
+            QMessageBox* box = new QMessageBox(QMessageBox::Critical,
+                "Error",
+                "A background colour already exists with this name",
+                QMessageBox::NoButton,
+                this);
+            box->show();
+        }
     });
 
     connect(field_inner_back_col, &SearchableList::itemModified, this, [this](SearchableListItem& item)
     {
+        if (item.txt == item.old_txt)
+            return;
+
         bool already_exists = composerGenerator.containsInnerBackColor(item.txt);
         if (!already_exists)
             composerGenerator.replaceInnerBackColor(item.old_txt, item.txt);
@@ -724,7 +757,14 @@ PageOptions::PageOptions(QStatusBar* _statusBar, QWidget* parent)
         repopulateLists(false, false, false, false, false, true, false);
 
         if (already_exists)
-            QMessageBox::critical(this, "Error", "An inner-background colour already exists with this name");
+        {
+            QMessageBox* box = new QMessageBox(QMessageBox::Critical,
+                "Error",
+                "An inner-background colour already exists with this name",
+                QMessageBox::NoButton,
+                this);
+            box->show();
+        }
     });
 
     // Callbacks for detecting Radio toggle change
@@ -1149,7 +1189,7 @@ PageOptions::PageOptions(QStatusBar* _statusBar, QWidget* parent)
     connect(ui->save_btn, &QPushButton::clicked, this, [this]()
     {
         QString save_data = serialize();
-        project_file_manager->doSave("Select Project File", "label_maker_project.bin", "Project File (*.json);", save_data.toUtf8());
+        project_file_manager->doSave("Save Project File", "project.json", "Project File (*.json);", save_data.toUtf8());
     });
 
     // Load CSV button
@@ -1196,7 +1236,12 @@ PageOptions::PageOptions(QStatusBar* _statusBar, QWidget* parent)
                     err += "Invalid:  Background Color\n";
 
                 // Handle error
-                QMessageBox::critical(this, "Error", err);
+                QMessageBox* box = new QMessageBox(QMessageBox::Critical,
+                    "Error",
+                    err,
+                    QMessageBox::NoButton,
+                    this);
+                box->show();
             }
         });
     });
@@ -1724,7 +1769,15 @@ void PageOptions::readCSV(const char* text)
 void PageOptions::rebuildDatabaseAndPopulateUI()
 {
     if (!rebuildDatabase())
-        QMessageBox::critical(this, "Error", "Unable to parse CSV headers. Please assign a new valid CSV.");
+    {
+        // Handle error
+        QMessageBox* box = new QMessageBox(QMessageBox::Critical,
+            "Error",
+            "Unable to parse CSV headers. Please assign a new valid CSV.",
+            QMessageBox::NoButton,
+            this);
+        box->show();
+    }
 
     repopulateLists();
     scanForAllTokenParseErrors();
@@ -2087,21 +2140,53 @@ void PageOptions::onEditSelectedProductTokenDescription(int row, int col, QStrin
     std::string new_token = token_model_index.data(Qt::DisplayRole).toString().toStdString();
     std::string new_desc = desc_model_index.data(Qt::DisplayRole).toString().toStdString();
 
+    auto finalize = [&map, this]()
+    {
+        map.sortByDescendingLength();
+
+        // Multiple materials might have been affected. Recheck all for parse errors
+        scanForAllTokenParseErrors();
+
+        // Reparse "selected" generic code and repopulate table
+        updateSelectedProductTokenTable();
+
+        // Update tables in settings too
+        populateTokenDescriptionModels();
+        populateTokenDescriptionTables();
+    };
+
     if (col == 0)
     {
         if (new_txt.isEmpty())
         {
             // Removing this token
-            if (QMessageBox::warning(this, "Warning",
+            QMessageBox* box = new QMessageBox(QMessageBox::Warning,
+                "Warning",
                 "Erasing token/description for all matching items. Are you sure?",
-                QMessageBox::StandardButton::Yes,
-                QMessageBox::StandardButton::Abort) == QMessageBox::StandardButton::Yes)
+                QMessageBox::StandardButton::Yes|QMessageBox::StandardButton::Abort,
+                this);
+
+            QObject::connect(box, &QMessageBox::finished, [&map, existing_token, finalize](int result)
             {
-                map.lookup.remove(existing_token);
-            }
+                if (result == QMessageBox::Yes)
+                    map.lookup.remove(existing_token);
+
+                finalize();
+            });
+            box->show();
+
+            ///if (QMessageBox::warning(this, "Warning",
+            ///    "Erasing token/description for all matching items. Are you sure?",
+            ///    QMessageBox::StandardButton::Yes,
+            ///    QMessageBox::StandardButton::Abort) == QMessageBox::StandardButton::Yes)
+            ///{
+            ///    map.lookup.remove(existing_token);
+            ///}
         }
         else
         {
+            // New token was entered (not empty)
+
             // Test to see if the entered token is parseable (without altering data)
             {
                 bool parseable = false;
@@ -2123,6 +2208,7 @@ void PageOptions::onEditSelectedProductTokenDescription(int row, int col, QStrin
                     parseable = (row < parse_test.size() && parse_test[row].txt == new_txt);
                     map.lookup.remove(new_txt.toStdString());
                 }
+
                 // Recover temporarily erased existing token before proceeding
                 if (existing_token_info.found)
                 {
@@ -2131,11 +2217,21 @@ void PageOptions::onEditSelectedProductTokenDescription(int row, int col, QStrin
                 }
                 if (!parseable)
                 {
-                    QMessageBox::critical(this, "Error", "Not a valid token for this generic code");
                     updateSelectedProductTokenTable();
+
+                    QMessageBox* box = new QMessageBox(QMessageBox::Critical,
+                        "Error", "Not a valid token for this generic code",
+                        QMessageBox::NoButton,
+                        this);
+
+                    box->show();
+
+                    ///QMessageBox::critical(this, "Error", "Not a valid token for this generic code");
                     return;
                 }
             }
+
+            // New token entered IS parseable
 
             // Changing token name
             if (map.lookup.contains(new_txt.toStdString()))
@@ -2158,7 +2254,45 @@ void PageOptions::onEditSelectedProductTokenDescription(int row, int col, QStrin
                     "- Click \"Apply\" to overwrite the saved description\n"\
                     "- Click \"Discard\" to switch to the saved description";
 
-                QMessageBox::StandardButton ret = QMessageBox::question(this, "Warning", warning,
+                QMessageBox* box = new QMessageBox(QMessageBox::Critical,
+                    "Warning", warning,
+                        QMessageBox::StandardButton::Apply |
+                        QMessageBox::StandardButton::Discard |
+                        QMessageBox::StandardButton::Abort,
+                    this);
+
+                QObject::connect(box, &QMessageBox::finished, [this, row, &map, existing_token, finalize, new_token, new_desc, new_txt](int ret)
+                {
+                    // Is the existing token in use anywhere else? If not, prompt for deletion
+                    //if (countTokenUsers(row, existing_token) == 0)
+                    //{
+                    //    QMessageBox* remove_existing_question_box = new QMessageBox(QMessageBox::Question,
+                    //        "Remove old token?", 
+                    //        '"' + QString(existing_token.c_str()) + "\" is no longer used by any materials.\n\nRemove?",
+                    //        QMessageBox::StandardButton::Yes | QMessageBox::StandardButton::No,
+                    //        this);
+                    //
+                    //    connect(remove_existing_question_box, &QMessageBox::finished,
+                    //        [finalize, &map, existing_token](int ret)
+                    //    {
+                    //        map.lookup.remove(existing_token);
+                    //        finalize();
+                    //    });
+                    //
+                    //    remove_existing_question_box->show();
+                    //}
+                    //else
+                    {
+                        if (ret == QMessageBox::StandardButton::Apply)
+                            map.lookup.set(new_txt.toStdString(), new_desc);
+
+                        finalize();
+                    }
+                });
+
+                box->show();
+
+                /*QMessageBox::StandardButton ret = QMessageBox::question(this, "Warning", warning,
                     QMessageBox::StandardButton::Apply | QMessageBox::StandardButton::Discard | QMessageBox::StandardButton::Abort);
 
                 if (ret == QMessageBox::StandardButton::Apply)
@@ -2171,13 +2305,16 @@ void PageOptions::onEditSelectedProductTokenDescription(int row, int col, QStrin
                 {
                     std::string existing_desc = map.lookup.get(new_token);
                     map.lookup.remove(existing_token);
-                }
+                }*/
             }
             else
             {
                 // Setup a new token/description with a dummy description
+                if (existing_token_info.found)
+                    map.lookup.remove(existing_token);
+
                 map.lookup.set(new_txt.toStdString(), existing_desc);
-                map.sortByDescendingLength();
+                finalize();
             }
         }
     }
@@ -2187,17 +2324,11 @@ void PageOptions::onEditSelectedProductTokenDescription(int row, int col, QStrin
         
         if (!new_token.empty())
             map.lookup[new_token] = new_txt.toStdString();
+
+        finalize();
     }
 
-    // Multiple materials might have been affected. Recheck all for parse errors
-    scanForAllTokenParseErrors();
-
-    // Reparse "selected" generic code and repopulate table
-    updateSelectedProductTokenTable();
-
-    // Update tables in settings too
-    populateTokenDescriptionModels();
-    populateTokenDescriptionTables();
+    //
 }
 
 void PageOptions::onEditSettingsProductTokenDescription(int table_index, int row, int col, QString txt)
@@ -2486,6 +2617,20 @@ void PageOptions::populateTokenDescriptionTables()
     //prepare_table(ui->D_tbl, description_maps[3].model);
     //prepare_table(ui->E_tbl, description_maps[4].model);
     //prepare_table(ui->F_tbl, description_maps[5].model);
+}
+
+int PageOptions::countTokenUsers(int tok_i, std::string token)
+{
+    int users = 0;
+    for (const auto& [merged_code, entry] : merged_code_entries)
+    {
+        auto parsed_tokens = parseGenericCodeTokens(entry->cell_generic_code->txt);
+        bool match = (tok_i < parsed_tokens.size()) && (parsed_tokens[tok_i].txt == token);
+
+        if (match)
+            users++;
+    }
+    return users;
 }
 
 void PageOptions::countStyleUsers()

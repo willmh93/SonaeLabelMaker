@@ -944,10 +944,14 @@ struct ComposerInfo
     void autoDetermineStroke()
     {
         //if (colorsSimilar(shape_color, tag_background_color, 0.1f))
-        if (needsStroke(shape_color, tag_background_color, 1.1))
+        QColor effective_background_color = tag_background_color;
+        if (tag_inner_background_color.isValid())
+            effective_background_color = tag_inner_background_color;
+
+        if (needsStroke(shape_color, effective_background_color, 1.1))
         {
             stroke_width = 20;
-            stroke_color = highContrastStrokeColor(tag_background_color);
+            stroke_color = highContrastStrokeColor(effective_background_color);
         }
         else
         {

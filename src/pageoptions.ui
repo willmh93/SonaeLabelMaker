@@ -194,6 +194,14 @@ CSV data gets embedded in Project file</string>
          </widget>
         </item>
         <item>
+         <widget class="QLabel" name="build_name">
+          <property name="text">
+           <string>  build date
+  04/04/24</string>
+          </property>
+         </widget>
+        </item>
+        <item>
          <spacer name="horizontalSpacer">
           <property name="orientation">
            <enum>Qt::Orientation::Horizontal</enum>

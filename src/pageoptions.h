@@ -645,6 +645,8 @@ public:
         bool bInnerBackCol = true,
         bool bCSV = true
     );
+
+    int countTokenUsers(int table_index, std::string token);
     void countStyleUsers();
     void updateItemsEditable();
 
