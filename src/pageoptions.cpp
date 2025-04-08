@@ -21,7 +21,7 @@
 //#include <minizip/ioapi.h>
 
 
-QByteArray generatePDF(QGraphicsScene* scene, float src_margin)
+QByteArray generatePDF(QGraphicsScene* scene, int dpi, float src_margin)
 {
     QByteArray pdfData;
     QBuffer buffer(&pdfData);
@@ -29,7 +29,7 @@ QByteArray generatePDF(QGraphicsScene* scene, float src_margin)
 
     QPdfWriter pdfWriter(&buffer);
     pdfWriter.setPageSize(QPageSize(QPageSize::A4));
-    pdfWriter.setResolution(300);  // High quality
+    pdfWriter.setResolution(dpi);  // High quality
 
     QRectF print_rect = pdfWriter.pageLayout().paintRectPixels(pdfWriter.resolution());
     QRectF src_rect = scene->sceneRect().adjusted(
@@ -56,14 +56,15 @@ PdfSceneWriter::PdfSceneWriter()
     : pdfBuffer(&pdfData)
 {}
 
-void PdfSceneWriter::start(float _src_margin)
+void PdfSceneWriter::start(int _dpi, float _src_margin)
 {
+    dpi = _dpi;
     src_margin = _src_margin;
 
     pdfBuffer.open(QIODevice::WriteOnly);
     pdfWriter = new QPdfWriter(&pdfBuffer);
     pdfWriter->setPageSize(QPageSize(QPageSize::A4));
-    pdfWriter->setResolution(300);
+    pdfWriter->setResolution(dpi);
 
     pdfPainter = new QPainter();
     if (!pdfPainter->begin(pdfWriter)) {
@@ -1216,7 +1217,7 @@ PageOptions::PageOptions(QStatusBar* _statusBar, QWidget* parent)
         {
             if (result == ComposerResult::SUCCEEDED)
             {
-                QByteArray pdf = generatePDF(scene, pagePreview->page_margin);
+                QByteArray pdf = generatePDF(scene, pagePreview->targetPageDPI(), pagePreview->targetPageMargin());
                 pdf_exporter->doSave("Select PDF Path", "label.pdf", "PDF File (*.pdf);", pdf);
             }
             else
@@ -1262,7 +1263,7 @@ PageOptions::PageOptions(QStatusBar* _statusBar, QWidget* parent)
 
             if (batch_dialog->isSinglePDF())
             {
-                pdf_writer.start(pagePreview->page_margin);
+                pdf_writer.start(pagePreview->targetPageDPI(), pagePreview->targetPageMargin());
             }
 
             //pdfData = new QByteArray();
@@ -1643,7 +1644,7 @@ void PageOptions::processExportPDF()
                 prod_name = prod_name.replace('/', "__");
                 QString filename = (pair.second->cell_material_code->txt + "___" + prod_name.toStdString() + ".pdf").c_str();
 
-                QByteArray pdf = generatePDF(scene, pagePreview->page_margin);
+                QByteArray pdf = generatePDF(scene, pagePreview->targetPageDPI(), pagePreview->targetPageMargin());
                 pdfs.append({ filename, pdf });
             }
         }
@@ -1671,7 +1672,7 @@ void PageOptions::processExportPDF()
         batch_dialog->setProgress(progress);
 
         // Schedule the next file processing without blocking the UI
-        QTimer::singleShot(50, this, &PageOptions::processExportPDF);
+        QTimer::singleShot(25, this, &PageOptions::processExportPDF);
     });
 }
 
@@ -2174,14 +2175,6 @@ void PageOptions::onEditSelectedProductTokenDescription(int row, int col, QStrin
                 finalize();
             });
             box->show();
-
-            ///if (QMessageBox::warning(this, "Warning",
-            ///    "Erasing token/description for all matching items. Are you sure?",
-            ///    QMessageBox::StandardButton::Yes,
-            ///    QMessageBox::StandardButton::Abort) == QMessageBox::StandardButton::Yes)
-            ///{
-            ///    map.lookup.remove(existing_token);
-            ///}
         }
         else
         {
@@ -2189,32 +2182,7 @@ void PageOptions::onEditSelectedProductTokenDescription(int row, int col, QStrin
 
             // Test to see if the entered token is parseable (without altering data)
             {
-                bool parseable = false;
-                bool new_token_already_exists = map.lookup.contains(new_txt.toStdString());
-
-                // Temporarily erase existing token (since we're trying to change it to something else)
-                if (existing_token_info.found) map.lookup.remove(existing_token);
-
-                if (new_token_already_exists)
-                {
-                    std::vector<GenericCodeTokenInfo> parse_test = parseGenericCodeTokens(selected_entry->cell_generic_code->txt);
-                    parseable = (row < parse_test.size() && parse_test[row].txt == new_txt);
-                }
-                else
-                {
-                    map.lookup.set(new_txt.toStdString(), "dummy");
-                    map.sortByDescendingLength();
-                    std::vector<GenericCodeTokenInfo> parse_test = parseGenericCodeTokens(selected_entry->cell_generic_code->txt);
-                    parseable = (row < parse_test.size() && parse_test[row].txt == new_txt);
-                    map.lookup.remove(new_txt.toStdString());
-                }
-
-                // Recover temporarily erased existing token before proceeding
-                if (existing_token_info.found)
-                {
-                    map.lookup.set(existing_token, existing_desc);
-                    map.sortByDescendingLength();
-                }
+                bool parseable = isChangedTokenParsable(map, row, new_txt.toStdString());
                 if (!parseable)
                 {
                     updateSelectedProductTokenTable();
@@ -2225,8 +2193,6 @@ void PageOptions::onEditSelectedProductTokenDescription(int row, int col, QStrin
                         this);
 
                     box->show();
-
-                    ///QMessageBox::critical(this, "Error", "Not a valid token for this generic code");
                     return;
                 }
             }
@@ -2263,6 +2229,14 @@ void PageOptions::onEditSelectedProductTokenDescription(int row, int col, QStrin
 
                 QObject::connect(box, &QMessageBox::finished, [this, row, &map, existing_token, finalize, new_token, new_desc, new_txt](int ret)
                 {
+                    // todo: The issue is subtle. It's more about if you're shortening the code
+                    //       leaving the longer code active, EVEN if not in use. The warning needs
+                    //       to explain this, and present the options:
+                    // > "Not possible to shorten token without remove "10W-40" first, otherwise
+                    //    that will get matched before the suggested alternative "10W".
+                    //    (Discard) Remove 10W-40 (Currency in use by X other materials)
+                    //    (Abort)
+
                     // Is the existing token in use anywhere else? If not, prompt for deletion
                     //if (countTokenUsers(row, existing_token) == 0)
                     //{
@@ -2557,6 +2531,43 @@ void PageOptions::updateSelectedProductTokenTable()
         if (currentHeight < 25)
             ui->description_tbl->setRowHeight(row, 25);
     }
+}
+
+bool PageOptions::isChangedTokenParsable(TokenDescriptionMap& map, int token_index, std::string new_token)
+{
+    std::vector<GenericCodeTokenInfo> existing_tokens = parseGenericCodeTokens(selected_entry->cell_generic_code->txt);
+    const GenericCodeTokenInfo& existing_token_info = existing_tokens[token_index];
+    std::string existing_token = existing_token_info.txt;
+    std::string existing_desc = existing_token_info.desc;
+
+    bool parseable = false;
+    bool new_token_already_exists = map.lookup.contains(new_token);
+
+    // Temporarily erase existing token (since we're trying to change it to something else)
+    if (existing_token_info.found) map.lookup.remove(existing_token);
+
+    if (new_token_already_exists)
+    {
+        std::vector<GenericCodeTokenInfo> parse_test = parseGenericCodeTokens(selected_entry->cell_generic_code->txt);
+        parseable = (token_index < parse_test.size() && parse_test[token_index].txt == new_token);
+    }
+    else
+    {
+        map.lookup.set(new_token, "dummy");
+        map.sortByDescendingLength();
+        std::vector<GenericCodeTokenInfo> parse_test = parseGenericCodeTokens(selected_entry->cell_generic_code->txt);
+        parseable = (token_index < parse_test.size() && parse_test[token_index].txt == new_token);
+        map.lookup.remove(new_token);
+    }
+
+    // Recover temporarily erased existing token before proceeding
+    if (existing_token_info.found)
+    {
+        map.lookup.set(existing_token, existing_desc);
+        map.sortByDescendingLength();
+    }
+
+    return parseable;
 }
 
 inline void PageOptions::checkForParseError(OilTypeEntryPtr entry)

@@ -34,12 +34,13 @@ public:
     PdfSceneWriter();
     ~PdfSceneWriter();
 
-    void start(float src_margin);
+    void start(int dpi, float src_margin);
     void addPage(QGraphicsScene* scene);
     QByteArray finalize();
 
 private:
 
+    int dpi;
     float src_margin;
     QRectF page_rect = QRectF(0, 0, 2480, 3508);
 
@@ -611,6 +612,7 @@ class PageOptions : public QWidget
     };
 
     std::vector<GenericCodeTokenInfo> parseGenericCodeTokens(const string_ex &generic_code);
+    bool isChangedTokenParsable(TokenDescriptionMap& map, int token_index, std::string new_token);
     void updateSelectedProductTokenTable();
     void checkForParseError(OilTypeEntryPtr entry);
     void scanForAllTokenParseErrors();
@@ -646,7 +648,8 @@ public:
         bool bCSV = true
     );
 
-    int countTokenUsers(int table_index, std::string token);
+    int countTokenUsers(int tok_i, std::string token);
+    int countEditedTokenUsers(int tok_i, std::string token);
     void countStyleUsers();
     void updateItemsEditable();
 

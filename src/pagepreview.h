@@ -961,6 +961,13 @@ struct ComposerInfo
     }
 };
 
+enum PageTemplateType
+{
+    A4_300_DPI,
+    A4_150_DPI,
+    A4_50_DPI
+};
+
 class PageGraphicsView : public QGraphicsView
 {
     Q_OBJECT
@@ -1001,6 +1008,9 @@ private:
     int maintext_fontId;
     int barcode_fontId;
 
+    PageTemplateType page_type = PageTemplateType::A4_300_DPI;
+
+
 public:
 
     friend class PageGraphicsView;
@@ -1008,84 +1018,52 @@ public:
 
     bool fit_view_lock = true;
 
-    const int info_row_count = 3;
-
-    // Viewport
-    const qreal view_margin_ratio = 0.03;
-
-    // Page
-    const qreal page_width = 2480;
-    const qreal page_height = 3508;
-    const qreal page_margin = page_height * 0.035;
-    const qreal page_cx = page_width / 2.0;
-    const qreal page_cy = page_width / 2.0;
-
-    // Logo
-    const qreal logo_height = page_height * 0.075;
-    const qreal logo_padding = logo_height * 0.1;
-    const qreal logo_section_height = logo_height + logo_padding * 2;
-
-    // tag
-    const qreal tag_padding = page_height * 0.015;
-
-    // Shape
-    const qreal shape_padding = page_height * 0.08;
-
-    // Info Boxes
-    const qreal info_row_height = page_height * 0.08;
-
-    ///
-    /// Auto-determined
-    ///
-  
-    const qreal view_margin = ((page_width + page_width) / 2.0) * view_margin_ratio;
-    const qreal body_width = page_width - page_margin * 2;
-    const qreal body_height = page_height - page_margin * 2;
-
-    // Sections
-    const qreal page_body_left = page_margin;
-    const qreal page_body_top = page_margin;
-    const qreal page_body_right = page_width - page_margin;
-    const qreal page_body_bottom = page_height - page_margin;
-
-    const qreal logo_section_top = page_margin + logo_padding;
-    const qreal logo_section_bottom = logo_section_top + logo_height + logo_padding;
-
-    const qreal info_section_height = info_row_height * info_row_count;
-
-    const qreal tag_section_height = page_height - page_margin * 2 - logo_section_height - info_section_height;
-    const qreal tag_section_bottom = logo_section_bottom + tag_section_height;
-    QRect tag_section_rect = QRect(QPoint(page_body_left, logo_section_bottom), QPoint(page_body_right, tag_section_bottom));
-    //const qreal tag_size = tag_section_height - tag_padding * 2;
-
-    // Tag rect
-    QRect tag_body_rect = tag_section_rect.adjusted(tag_padding, tag_padding, -tag_padding, -tag_padding);
-    QPoint tag_center = tag_body_rect.center();
-    qreal tag_box_len = std::min(tag_body_rect.width(), tag_body_rect.height());
-    QRect tag_rect = QRect(
-        tag_center.x() - tag_box_len / 2,
-        tag_center.y() - tag_box_len / 2,
-        tag_box_len,
-        tag_box_len
-    );
-
-    //QRect shape_body_rect = tag_rect.adjusted(
-    //    shape_padding,
-    //    shape_padding,
-    //    -shape_padding,
-    //    -shape_padding
-    //);
-    
-    QRect page_rect = QRect(0, 0, page_width, page_height);
-    QRect view_area_rect = page_rect.adjusted(-view_margin, -view_margin, view_margin, view_margin);
-    QRect page_body_rect = page_rect.adjusted(page_margin, page_margin, -page_margin, -page_margin);
     
     
     QTableView* getTable();
 
+    void setTargetPageType(PageTemplateType type)
+    {
+        page_type = type;
+    }
+    int targetPageDPI()
+    {
+        switch (page_type)
+        {
+        case PageTemplateType::A4_300_DPI: return 300;
+        case PageTemplateType::A4_150_DPI: return 150;
+        case PageTemplateType::A4_50_DPI: return 50;
+        }
+        return 300;
+    }
+    QSizeF targetPageSize()
+    {
+        switch (page_type)
+        {
+        case PageTemplateType::A4_300_DPI: return QSizeF(2480, 3508);
+        case PageTemplateType::A4_150_DPI: return QSizeF(2480/2, 3508/2);
+        case PageTemplateType::A4_50_DPI: return QSizeF(2480/6, 3508/6);
+        }
+        return QSizeF(0, 0);
+    }
+    QRectF targetPageRect()
+    {
+        QSizeF size = targetPageSize();
+        return QRectF(0, 0, size.width(), size.height());
+    }
+    int targetPageLineWidth()
+    {
+        return static_cast<int>(std::max(1.0, targetPageSize().width() * 0.002));
+    }
+    qreal targetPageMargin()
+    {
+        return (targetPageRect().height() * 0.035) - targetPageLineWidth();
+    }
+
 private:
 
     QTextOption textOption;
+    
     
 
     void refitPageView();
